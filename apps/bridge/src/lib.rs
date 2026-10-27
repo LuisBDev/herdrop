@@ -5,4 +5,5 @@ pub mod domain;
 pub mod extension_id;
 pub mod http;
 pub mod ports;
+pub(crate) mod process;
 pub mod protocol;
