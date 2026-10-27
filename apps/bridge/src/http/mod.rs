@@ -1,3 +1,4 @@
+pub mod agents;
 pub mod error;
 pub mod health;
 pub mod security;
@@ -24,6 +25,8 @@ pub fn router<D: AgentDirectory, S: BundleStore, P: AgentPrompter>(
 ) -> Router {
     Router::new()
         .route("/health", get(health::health))
+        .route("/machines", get(agents::machines::<D, S, P>))
+        .route("/agents", get(agents::agents::<D, S, P>))
         .route("/drops", post(create_drop))
         .with_state(bridge)
         .layer(DefaultBodyLimit::max(BODY_LIMIT))

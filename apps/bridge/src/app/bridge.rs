@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use jiff::Timestamp;
 
+use crate::app::catalog::AgentCatalog;
 use crate::domain::retention::RetentionPolicy;
 use crate::ports::{AgentDirectory, AgentPrompter, BundleStore};
 
@@ -13,6 +14,7 @@ pub struct Bridge<D, S, P> {
     pub prompter: Arc<P>,
     pub retention: RetentionPolicy,
     pub clock: Clock,
+    pub catalog: AgentCatalog,
 }
 
 impl<D: AgentDirectory, S: BundleStore, P: AgentPrompter> Bridge<D, S, P> {
@@ -29,6 +31,7 @@ impl<D: AgentDirectory, S: BundleStore, P: AgentPrompter> Bridge<D, S, P> {
             prompter,
             retention,
             clock,
+            catalog: AgentCatalog::default(),
         }
     }
 
