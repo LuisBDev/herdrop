@@ -320,3 +320,20 @@ async fn request_rejection_table() {
     assert_eq!(status, StatusCode::NOT_FOUND);
     assert_eq!(response["error"]["code"], "drop_not_found");
 }
+
+#[tokio::test]
+async fn check_agent_refreshes_the_agent_catalog() {
+    let tmp = tempfile::tempdir().unwrap();
+    let folder = tmp.path().join("work");
+    let (app, handles) = test_bridge(tmp.path());
+    local_agent(&handles, AgentStatus::Idle, PANE, &folder);
+    let id = create(&app, files(1)).await;
+    assert_eq!(wait_final(&app, &id).await["state"], "delivered");
+    local_agent(&handles, AgentStatus::Idle, "w2-p2", &folder);
+
+    let (status, _, body) = get(&app, "/agents?machine=local").await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["agents"][0]["pane_id"], PANE);
+    assert_eq!(handles.directory.agent_calls("local"), 1);
+}

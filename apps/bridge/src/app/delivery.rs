@@ -89,9 +89,16 @@ impl<D: AgentDirectory, S: BundleStore, P: AgentPrompter> Bridge<D, S, P> {
 
     async fn deliver(&self, record: &DropRecord) -> Outcome {
         self.enter(&record.id, DropStep::CheckAgent);
-        let agents = match self.directory.agents(&record.machine).await {
+        let result = self.directory.agents(&record.machine).await;
+        let checked = result
+            .as_ref()
+            .map(Clone::clone)
+            .map_err(ToString::to_string);
+        self.catalog
+            .finish(&record.machine.key(), result, self.now());
+        let agents = match checked {
             Ok(agents) => agents,
-            Err(error) => return Outcome::failed(DropStep::CheckAgent, error.to_string()),
+            Err(message) => return Outcome::failed(DropStep::CheckAgent, message),
         };
         let Some(agent) = agents
             .into_iter()

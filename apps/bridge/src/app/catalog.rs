@@ -133,7 +133,7 @@ impl AgentCatalog {
         state.entries.entry(key.clone()).or_default().response(key)
     }
 
-    fn finish(
+    pub(crate) fn finish(
         &self,
         key: &MachineKey,
         result: Result<Vec<AgentRecord>, DirectoryError>,

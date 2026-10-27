@@ -50,12 +50,11 @@ impl BundleStore for FsBundleStore {
         fs::create_dir_all(&drop).await?;
         ensure_gitignore(&root.join(GITIGNORE)).await?;
         let staging = drop.join(format!("{TMP_PREFIX}{id}"));
-        fs::create_dir(&staging).await?;
-        for (name, content) in bundle.files() {
-            fs::write(staging.join(name.as_str()), content).await?;
-        }
         let dir = drop.join(id.as_str());
-        fs::rename(&staging, &dir).await?;
+        if let Err(error) = stage(&staging, &dir, bundle).await {
+            let _ = fs::remove_dir_all(&staging).await;
+            return Err(error);
+        }
         if let Err(error) = prune_dir(&drop, id, now, policy).await {
             tracing::warn!(drop_id = %id, %error, "bundle prune failed");
         }
@@ -78,6 +77,19 @@ impl BundleStore for FsBundleStore {
             other => other,
         }
     }
+}
+
+async fn stage(staging: &Path, dir: &Path, bundle: &Bundle) -> Result<(), StoreError> {
+    match fs::remove_dir_all(staging).await {
+        Err(error) if error.kind() != ErrorKind::NotFound => return Err(error.into()),
+        _ => {}
+    }
+    fs::create_dir(staging).await?;
+    for (name, content) in bundle.files() {
+        fs::write(staging.join(name.as_str()), content).await?;
+    }
+    fs::rename(staging, dir).await?;
+    Ok(())
 }
 
 async fn ensure_gitignore(path: &Path) -> Result<(), StoreError> {

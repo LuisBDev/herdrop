@@ -134,3 +134,28 @@ async fn write_prunes_old_bundles_and_stale_tmp_but_keeps_new() {
 
     assert_eq!(entries(&drop), ["20261026-120000-frsh", NEW_ID, "keep-me"]);
 }
+
+#[tokio::test]
+async fn write_succeeds_over_a_stale_staging_folder_for_the_same_id() {
+    let tmp = TempDir::new().unwrap();
+    let folder = tmp.path().join("project");
+    let staging = folder
+        .join(".herdrop")
+        .join("drop")
+        .join(format!(".tmp-{NEW_ID}"));
+    std::fs::create_dir_all(&staging).unwrap();
+    std::fs::write(staging.join("A1.md"), "partial").unwrap();
+    let store = FsBundleStore {
+        home: tmp.path().join("home"),
+    };
+
+    let written = write(&store, path_folder(&folder), NEW_ID).await;
+
+    let dir = Path::new(&written.dir);
+    assert_eq!(entries(dir), ["A1.md", "README.md"]);
+    assert_eq!(
+        std::fs::read_to_string(dir.join("A1.md")).unwrap(),
+        "fix the header\n"
+    );
+    assert_eq!(entries(&folder.join(".herdrop").join("drop")), [NEW_ID]);
+}
