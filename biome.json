@@ -18,5 +18,6 @@
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineEnding": "lf", "lineWidth": 100 },
   "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
+  "css": { "parser": { "tailwindDirectives": true } },
   "linter": { "rules": { "preset": "recommended" } }
 }
