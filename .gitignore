@@ -4,3 +4,7 @@ dist/
 *.crx
 *.pem
 .env*
+.superpowers
+.atl
+.odd
+docs/superpowers
