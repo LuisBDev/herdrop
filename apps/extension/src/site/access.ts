@@ -26,6 +26,8 @@ export async function hasSiteAccess(url: string): Promise<boolean> {
 export async function grantedSiteOrigins(): Promise<string[]> {
   const { origins } = await browser.permissions.getAll();
   return (origins ?? [])
-    .filter((o) => (o.startsWith('http://') || o.startsWith('https://')) && o !== BRIDGE_ORIGIN_PATTERN)
+    .filter(
+      (o) => (o.startsWith('http://') || o.startsWith('https://')) && o !== BRIDGE_ORIGIN_PATTERN,
+    )
     .sort();
 }

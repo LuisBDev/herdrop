@@ -1,6 +1,6 @@
+import { afterEach, expect, it, vi } from 'vitest';
 import { browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { afterEach, expect, it, vi } from 'vitest';
 import { grantedSiteOrigins, originPattern, requestSiteAccess } from './access';
 
 afterEach(() => {
@@ -24,7 +24,12 @@ it('request_is_called_synchronously', async () => {
 
 it('granted_origins_exclude_the_bridge_and_non_http', async () => {
   vi.spyOn(browser.permissions, 'getAll').mockResolvedValue({
-    origins: ['https://b.example.com/*', 'http://127.0.0.1/*', 'chrome://favicon/*', 'http://a.test:3000/*'],
+    origins: [
+      'https://b.example.com/*',
+      'http://127.0.0.1/*',
+      'chrome://favicon/*',
+      'http://a.test:3000/*',
+    ],
     permissions: [],
   } as never);
   expect(await grantedSiteOrigins()).toEqual(['http://a.test:3000/*', 'https://b.example.com/*']);
