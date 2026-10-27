@@ -1,0 +1,7 @@
+{
+  "machines": [
+    { "key": "local", "label": "local", "local": true },
+    { "key": "779f8353534145c8951edca5f0dd34cd", "label": "Build machine", "local": false }
+  ],
+  "error": null
+}

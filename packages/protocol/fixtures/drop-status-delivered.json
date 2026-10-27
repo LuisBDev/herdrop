@@ -1,0 +1,9 @@
+{
+  "drop_id": "20261027-153012-kqzm",
+  "machine": "local",
+  "pane_id": "w1:p1",
+  "state": "delivered",
+  "step": "wait_activity",
+  "bundle_dir": "D:\\Projects\\acme-billing\\web\\.herdrop\\drop\\20261027-153012-kqzm",
+  "message": null
+}
