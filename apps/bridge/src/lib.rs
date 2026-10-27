@@ -1,5 +1,8 @@
 pub mod adapters;
+pub mod app;
 pub mod cli;
 pub mod domain;
+pub mod extension_id;
+pub mod http;
 pub mod ports;
 pub mod protocol;
