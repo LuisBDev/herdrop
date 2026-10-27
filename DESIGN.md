@@ -532,5 +532,48 @@ Herdrop's depth is carried by surface ladder + hairline borders. The brand resis
 ## Known Gaps
 
 - Form-field error and validation styling is not visible on the inspected pages.
-- The light theme is not documented yet. Herdrop ships light and dark with a toggle; light tokens are to be defined, starting from `{colors.inverse-canvas}`, `{colors.inverse-surface-1}`, `{colors.inverse-surface-2}`, and `{colors.inverse-ink}`, with the same lavender accent.
+- The light theme and the product states are defined in [Product Tokens](#product-tokens). Two of those tokens deviate from this file and await owner approval: `primary-hover` and the opaque focus ring.
+
+## Product Tokens
+
+The side panel, the note box, and the page overlay use these tokens. They come from the approved layout (proposal C). Each row gives the light value and the dark value. The dark surface, hairline, and ink values match the tokens above.
+
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `canvas` | #ffffff | #010102 | Panel background |
+| `surface-1` | #f7f8f8 | #0f1011 | Cards, stage rows |
+| `surface-2` | #f2f3f4 | #141516 | Raised controls |
+| `surface-3` | #ebecee | #18191a | Hover, linked list item |
+| `surface-4` | #e4e6e9 | #191a1b | Badges |
+| `hairline` | #e4e5e8 | #23252a | Default 1px border |
+| `hairline-strong` | #d4d6db | #34343a | Linked item outline |
+| `hairline-tertiary` | #c2c5cb | #3e3e44 | Separators on raised surfaces |
+| `ink` | #08090a | #f7f8f8 | Primary text |
+| `ink-muted` | #3a3e45 | #d0d6e0 | Secondary text, `done` status |
+| `ink-subtle` | #5c616a | #8a8f98 | Tertiary text, `unknown` status |
+| `ink-tertiary` | #8a8f98 | #62666d | Disabled text |
+| `control-border` | #80858e | #6b7079 | Radio, checkbox and input borders (3:1 against the surface) |
+| `semantic-success` | #1e7a34 | #27a644 | `idle` status, delivered |
+| `semantic-success-soft` / `-border` | #ebf5ee / #b7dcc1 | #0e1d12 / #1f4a2a | Success notices |
+| `status-working` | #1c6b75 | #4fa3b0 | `working` status |
+| `semantic-warning` | #8a5a00 | #d19a3e | `blocked` status |
+| `semantic-warning-soft` / `-border` | #fbf3e3 / #e5cd98 | #1f1709 / #5a4519 | Blocked notice |
+| `semantic-danger` | #bf3036 | #e5676c | Delivery errors, Delete |
+| `semantic-danger-soft` / `-border` | #fcebec / #efb9bc | #221011 / #5c2427 | Error notices |
+| `on-primary` | #ffffff | #ffffff | Text on the primary CTA |
+| `primary-hover` | #4f5bc4 | #4f5bc4 | Hovered primary CTA |
+| `page-highlight` | #5e6ad2 | #5e6ad2 | Overlay box on the page |
+| `page-highlight-ring` | #ffffff | #ffffff | Outer ring that keeps the box visible on dark pages |
+| `page-highlight-fill` | rgba(94,106,210,.08) | rgba(94,106,210,.08) | Overlay fill |
+| `float-shadow` | 0 8px 24px rgba(8,9,10,.14) | 0 8px 24px rgba(0,0,0,.5) | Only layers that float over the page: note box, pill, toast |
+
+Radii are `sm` 6px, `md` 8px, and `lg` 12px.
+
+Rules:
+
+- The focus ring is a solid 2px `{colors.primary-focus}` outline with a 2px offset. The 50 % opacity ring above does not reach 3:1, so the product uses the opaque one.
+- `primary-hover` is darker than the primary, not lighter. The #828fff hover above gives 2.87:1 with white text, which fails.
+- Lavender appears only on the CTA, focus, the brand mark, and the page overlay. No agent status uses it.
+- The panel has no shadows. Only the floating layers listed above use `float-shadow`.
+- The theme follows the system by default. The header toggle overrides it.
 - Product surfaces may need a richer status palette (agent states, annotation intents, priorities); those colors are to be defined for the extension UI.
