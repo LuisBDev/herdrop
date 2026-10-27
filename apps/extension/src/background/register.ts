@@ -14,6 +14,18 @@ async function openPanelOnActionClick(): Promise<void> {
   }
 }
 
+function ignoringRejection<A extends unknown[]>(
+  listener: (...args: A) => Promise<void>,
+): (...args: A) => Promise<void> {
+  return async (...args) => {
+    try {
+      await listener(...args);
+    } catch {
+      return;
+    }
+  };
+}
+
 export function registerWorker(): void {
   const store = createDraftStore({
     onCommitted: createBroadcast((tabId, state) =>
@@ -36,12 +48,14 @@ export function registerWorker(): void {
   backgroundMessenger.onMessage('setSelect', ({ data }) => handlers.setSelect(data.on));
   backgroundMessenger.onMessage('armGrab', () => handlers.armGrab());
 
-  browser.tabs.onActivated.addListener(onTabActivated);
-  browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'loading') await handlers.tabLoading(tabId);
-    await onTabUpdated(tabId, changeInfo, tab);
-  });
-  browser.tabs.onRemoved.addListener((tabId) => handlers.tabRemoved(tabId));
-  browser.windows.onFocusChanged.addListener(onWindowFocusChanged);
-  browser.commands.onCommand.addListener((name) => handlers.command(name));
+  browser.tabs.onActivated.addListener(ignoringRejection(onTabActivated));
+  browser.tabs.onUpdated.addListener(
+    ignoringRejection(async (tabId, changeInfo, tab) => {
+      if (changeInfo.status === 'loading') await handlers.tabLoading(tabId);
+      await onTabUpdated(tabId, changeInfo, tab);
+    }),
+  );
+  browser.tabs.onRemoved.addListener(ignoringRejection((tabId) => handlers.tabRemoved(tabId)));
+  browser.windows.onFocusChanged.addListener(ignoringRejection(onWindowFocusChanged));
+  browser.commands.onCommand.addListener(ignoringRejection((name) => handlers.command(name)));
 }

@@ -250,11 +250,29 @@ describe('announcements_for_each_transition', () => {
       local: true,
     },
   };
+  const deliveredOne: Draft = {
+    ...delivered,
+    lastDelivery: {
+      dropId: 'd1',
+      count: 1,
+      bundleDir: null,
+      destinationName: 'claude',
+      machine: 'local',
+      machineLabel: 'local',
+      local: true,
+    },
+  };
   const live = sending(local, drop('check_agent'), 2);
 
   it.each([
     [idle, live, 'Sending 2 annotations'],
+    [
+      { ...idle, annotations: annotations(1) },
+      sending(local, drop('check_agent'), 1),
+      'Sending 1 annotation',
+    ],
     [live, delivered, 'Delivered 2 annotations to claude'],
+    [sending(local, drop('check_agent'), 1), deliveredOne, 'Delivered 1 annotation to claude'],
     [live, failed('agent_blocked', null), 'Drop stopped: the agent is blocked'],
     [live, failed('agent_gone', null), 'Drop failed: the agent is gone'],
     [live, failed('sent_no_activity', null), 'Sent, but no activity yet'],

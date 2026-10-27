@@ -57,6 +57,9 @@ export function createDraftStore(deps: {
         if (event.type === 'destination.pick') {
           return { result, draft: result.draft, ui: { ...ui, selectOn: true } };
         }
+        if (event.type === 'destination.clear') {
+          return { result, draft: result.draft, ui: { ...ui, selectOn: false } };
+        }
         return { result, draft: result.draft };
       }),
     setSelect: (on) => run((draft, ui) => select(draft, ui, on)),

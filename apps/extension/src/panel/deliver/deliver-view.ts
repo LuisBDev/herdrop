@@ -147,20 +147,24 @@ export function failureView(draft: FailedDraft): FailureView {
 }
 
 export function deliveredView(last: LastDelivery) {
-  const noun = last.count === 1 ? 'annotation' : 'annotations';
+  const word = noun(last.count);
   return {
     title: `Delivered to ${last.destinationName}`,
     dropId: last.dropId,
-    where: `${last.count} ${noun} in ${last.bundleDir ?? last.dropId} on ${last.machineLabel}. The draft is empty again.`,
+    where: `${last.count} ${word} in ${last.bundleDir ?? last.dropId} on ${last.machineLabel}. The draft is empty again.`,
   };
+}
+
+function noun(count: number): string {
+  return count === 1 ? 'annotation' : 'annotations';
 }
 
 export function deliverAnnouncement(prev: Draft, next: Draft): string | null {
   if (next.phase === 'sending' && prev.phase !== 'sending') {
-    return `Sending ${next.annotations.length} annotations`;
+    return `Sending ${next.annotations.length} ${noun(next.annotations.length)}`;
   }
   if (prev.phase === 'sending' && next.phase === 'drafting' && next.lastDelivery !== null) {
-    return `Delivered ${next.lastDelivery.count} annotations to ${next.lastDelivery.destinationName}`;
+    return `Delivered ${next.lastDelivery.count} ${noun(next.lastDelivery.count)} to ${next.lastDelivery.destinationName}`;
   }
   if (next.phase === 'failed' && prev.phase !== 'failed') {
     switch (next.reason) {

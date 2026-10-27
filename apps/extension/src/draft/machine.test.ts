@@ -136,6 +136,48 @@ describe('draft machine', () => {
       expect: 'comment_too_long',
     },
     {
+      name: 'update fields',
+      from: {
+        ...empty,
+        annotations: [{ ...note('a1'), capture: { tag: 'x' } as unknown as Capture, createdAt: 7 }],
+      },
+      events: [
+        {
+          type: 'annotation.update',
+          id: 'a1',
+          intent: 'fix',
+          priority: 'blocking',
+          comment: 'new comment',
+        },
+      ],
+      expect: 'drafting',
+      verify: (d) =>
+        expect(d.annotations).toEqual([
+          {
+            id: 'a1',
+            intent: 'fix',
+            priority: 'blocking',
+            comment: 'new comment',
+            capture: { tag: 'x' },
+            createdAt: 7,
+          },
+        ]),
+    },
+    {
+      name: 'add second annotation',
+      from: one,
+      events: [{ type: 'annotation.add', annotation: note('a2', 'second') }],
+      expect: 'drafting',
+      verify: (d) => expect(d.annotations.map((a) => a.id)).toEqual(['a1', 'a2']),
+    },
+    {
+      name: 'discard from drafting',
+      from: { ...one, undo: { annotation: note('a0'), index: 0 } },
+      events: [{ type: 'draft.discard' }],
+      expect: 'drafting',
+      verify: (d) => expect(d).toEqual({ ...empty, destination }),
+    },
+    {
       name: 'update blank fix',
       from: one,
       events: [{ type: 'annotation.update', id: 'a1', intent: 'fix', priority: null, comment: '' }],

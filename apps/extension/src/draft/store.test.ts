@@ -135,6 +135,7 @@ describe('draft store', () => {
     expect((await uiItem.getValue()).pending).toBeNull();
 
     await store.dispatch({ type: 'destination.clear' });
+    expect((await uiItem.getValue()).selectOn).toBe(false);
     await store.setSelect(false);
     await store.setSelect(true);
     expect((await uiItem.getValue()).selectOn).toBe(false);
