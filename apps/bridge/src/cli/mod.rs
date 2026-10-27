@@ -9,3 +9,6 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {}
+
+pub mod config;
+pub mod paths;
