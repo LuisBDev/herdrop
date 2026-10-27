@@ -1,6 +1,5 @@
 const CONTENT_SCRIPT_CSS = /^content-scripts\/.+\.css$/;
-const ANY = '*';
-const GRANTABLE_MATCHES = [`http://${ANY}/${ANY}`, `https://${ANY}/${ANY}`];
+const GRANTABLE_MATCHES = ['http://*/*', 'https://*/*'];
 
 function isContentScriptCssEntry(
   entry: unknown,

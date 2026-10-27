@@ -1,8 +1,7 @@
 import { expect, it } from 'vitest';
-import { widenContentScriptCss } from './web-accessible';
+import { widenContentScriptCss } from './web-accessible.ts';
 
-const ANY = '*';
-const LOOPBACK = [`http://127.0.0.1/${ANY}`];
+const LOOPBACK = ['http://127.0.0.1/*'];
 
 it('widens_only_content_script_css_entries', () => {
   const manifest = {
@@ -22,7 +21,7 @@ it('widens_only_content_script_css_entries', () => {
     {
       resources: ['content-scripts/capture.css'],
       use_dynamic_url: true,
-      matches: [`http://${ANY}/${ANY}`, `https://${ANY}/${ANY}`],
+      matches: ['http://*/*', 'https://*/*'],
     },
     { resources: ['icon.png'], matches: LOOPBACK },
   ]);
