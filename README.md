@@ -84,12 +84,12 @@ Herdrop is not published in the Chrome Web Store.
 
 Click the Herdrop toolbar icon to open the side panel. The first time you use Herdrop on a site, the panel asks for access to that site.
 
-| Action | Shortcut | What it does |
-| --- | --- | --- |
-| **Select** | `Alt+Shift+H` | Turns on element selection. Click an element, then write the note. |
-| **Grab** | `Alt+Shift+G` | Copies one element's context to the clipboard as Markdown. It needs no destination and creates no annotation. |
-| **Copy** and **Copy all** | | Copy one annotation, or the whole draft, to the clipboard as Markdown. |
-| **Send** | | Delivers the draft to the chosen agent. |
+| Action                    | Shortcut      | What it does                                                                                                  |
+| ------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Select**                | `Alt+Shift+H` | Turns on element selection. Click an element, then write the note.                                            |
+| **Grab**                  | `Alt+Shift+G` | Copies one element's context to the clipboard as Markdown. It needs no destination and creates no annotation. |
+| **Copy** and **Copy all** |               | Copy one annotation, or the whole draft, to the clipboard as Markdown.                                        |
+| **Send**                  |               | Delivers the draft to the chosen agent.                                                                       |
 
 A draft has one destination. To change the destination of a draft that already has annotations, send or discard the draft first. A failed drop is the exception: **Move to another agent** re-targets every annotation in it.
 
@@ -127,22 +127,22 @@ retention_days = 7
 extension_id = "jclnmampofninmpoobjahafbkhfckbif"
 ```
 
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `port` | `47821` | Loopback port of the bridge. The extension expects `47821`. |
-| `retention_days` | `7` | Each time the bridge writes a bundle, it deletes bundles older than this from the same folder. |
-| `extension_id` | the bundled ID | The only extension origin that the bridge accepts. Change it only if you build the extension with a different `key`. |
+| Key              | Default        | Meaning                                                                                                              |
+| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `port`           | `47821`        | Loopback port of the bridge. The extension expects `47821`.                                                          |
+| `retention_days` | `7`            | Each time the bridge writes a bundle, it deletes bundles older than this from the same folder.                       |
+| `extension_id`   | the bundled ID | The only extension origin that the bridge accepts. Change it only if you build the extension with a different `key`. |
 
 ## Plugin actions
 
 Run an action with `herdr plugin action invoke <action> --plugin herdrop`. On Windows, add the `-windows` suffix to the action name, for example `start-windows`.
 
-| Action | What it does |
-| --- | --- |
-| `start` | Starts the bridge in the background. If a bridge already answers on the port, it does nothing. |
-| `stop` | Stops the bridge. |
-| `status` | Reports the bridge state as a Herdr notification. |
-| `prune` | Deletes old bundles from the focused pane's working folder. |
+| Action   | What it does                                                                                   |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| `start`  | Starts the bridge in the background. If a bridge already answers on the port, it does nothing. |
+| `stop`   | Stops the bridge.                                                                              |
+| `status` | Reports the bridge state as a Herdr notification.                                              |
+| `prune`  | Deletes old bundles from the focused pane's working folder.                                    |
 
 The plugin also declares a startup command that runs `herdrop start`. The bridge keeps its PID file and log in the Herdr plugin state folder, so run `stop` through the plugin action and not from a plain shell.
 
@@ -159,12 +159,12 @@ The bridge guards against web pages that try to call it. It does not guard again
 
 ## Develop
 
-| Command | What it runs |
-| --- | --- |
-| `bun run check` | Biome, TypeScript, Vitest, `cargo fmt`, `cargo clippy`, `cargo test`, and a check that the generated protocol types match the Rust types |
-| `bun run e2e` | Playwright end-to-end tests against a fake `herdr` and fixture sites |
-| `bun run --cwd apps/extension dev` | The extension in WXT development mode |
-| `bun run protocol:generate` | Regenerates `packages/protocol` from the Rust types |
+| Command                            | What it runs                                                                                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run check`                    | Biome, TypeScript, Vitest, `cargo fmt`, `cargo clippy`, `cargo test`, and a check that the generated protocol types match the Rust types |
+| `bun run e2e`                      | Playwright end-to-end tests against a fake `herdr` and fixture sites                                                                     |
+| `bun run --cwd apps/extension dev` | The extension in WXT development mode                                                                                                    |
+| `bun run protocol:generate`        | Regenerates `packages/protocol` from the Rust types                                                                                      |
 
 `bun run e2e` overwrites `apps/extension/.output/chrome-mv3` with a test build that allows `localhost`. Rebuild with `bun run --cwd apps/extension build` before you load the extension again.
 
