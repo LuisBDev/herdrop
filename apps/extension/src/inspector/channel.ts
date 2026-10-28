@@ -1,4 +1,5 @@
 import type { FrameworkInfo } from '../capture/types';
+import { newUuid } from '../lib/uuid.ts';
 import { angularComponents } from './angular';
 import { reactComponents } from './react';
 
@@ -29,7 +30,7 @@ function requestNonce(data: unknown): string | null {
 }
 
 export function requestFramework(el: Element, timeoutMs = 150): Promise<FrameworkInfo | null> {
-  const nonce = crypto.randomUUID();
+  const nonce = newUuid();
   return new Promise((resolve) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = (framework: FrameworkInfo | null) => {

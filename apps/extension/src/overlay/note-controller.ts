@@ -1,6 +1,7 @@
 import { type Accessor, createEffect, createMemo, createSignal, on, untrack } from 'solid-js';
 import type { Capture } from '../capture/types.ts';
 import type { DispatchResult, DraftEvent } from '../draft/model.ts';
+import { newUuid } from '../lib/uuid.ts';
 import type { PageState, PendingNoteInput, PendingResult } from '../messaging/types.ts';
 import { componentName, elementLabel, elementTag } from '../render/label.ts';
 import {
@@ -71,7 +72,7 @@ function tupleKey(t: PendingNoteInput | null): string {
 
 export function createNoteController(deps: NoteControllerDeps): NoteController {
   const { state } = deps;
-  const newId = deps.newId ?? (() => crypto.randomUUID());
+  const newId = deps.newId ?? (() => newUuid());
   const now = deps.now ?? (() => Date.now());
   const [open, setOpen] = createSignal<Open | null>(null);
   const [number, setNumber] = createSignal(0);
