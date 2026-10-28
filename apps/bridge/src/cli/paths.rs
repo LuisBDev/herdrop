@@ -50,7 +50,9 @@ pub struct PidRecord {
 impl PidRecord {
     pub fn read(path: &Path) -> Result<Option<PidRecord>, io::Error> {
         match std::fs::read_to_string(path) {
-            Ok(text) => Ok(serde_json::from_str(&text).ok()),
+            Ok(text) => serde_json::from_str(&text)
+                .map(Some)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err)),
             Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(None),
             Err(err) => Err(err),
         }
@@ -76,7 +78,7 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn pid_record_round_trips_and_missing_or_garbage_reads_none() {
+    fn pid_record_round_trips_and_missing_reads_none_and_garbage_is_invalid_data() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("herdrop.pid");
         assert_eq!(PidRecord::read(&path).unwrap(), None);
@@ -89,7 +91,8 @@ mod tests {
         assert_eq!(PidRecord::read(&path).unwrap(), Some(record));
 
         fs::write(&path, "garbage").unwrap();
-        assert_eq!(PidRecord::read(&path).unwrap(), None);
+        let error = PidRecord::read(&path).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
 
         PidRecord::remove(&path).unwrap();
         PidRecord::remove(&path).unwrap();

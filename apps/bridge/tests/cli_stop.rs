@@ -19,14 +19,16 @@ async fn stop_ends_a_started_bridge() {
         .unwrap();
     assert!(
         started.status.success(),
-        "{}",
-        String::from_utf8_lossy(&started.stdout)
+        "{}\n{}",
+        String::from_utf8_lossy(&started.stdout),
+        String::from_utf8_lossy(&started.stderr)
     );
 
     let output = herdrop(tmp.path()).arg("stop").output().unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success(), "{stdout}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stdout}\n{stderr}");
     let stopped = wait_until(Duration::from_secs(5), || async {
         !probe::health(port).await
     })
@@ -53,8 +55,15 @@ async fn stop_leaves_unrelated_process_alive_and_removes_stale_pid_file() {
     let output = herdrop(tmp.path()).arg("stop").output().unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success(), "{stdout}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stdout}\n{stderr}");
     assert!(unrelated.0.try_wait().unwrap().is_none());
+    assert!(!pid_file.exists());
+
+    std::fs::write(&pid_file, "garbage").unwrap();
+    let output = herdrop(tmp.path()).arg("stop").output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stderr}");
     assert!(!pid_file.exists());
 }
 

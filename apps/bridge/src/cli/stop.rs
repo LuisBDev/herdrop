@@ -55,10 +55,22 @@ pub async fn run() -> ExitCode {
 
 async fn stop() -> Result<Outcome, StopError> {
     let pid_file = StatePaths::from_env().pid_file();
-    let record = PidRecord::read(&pid_file).map_err(|source| StopError::ReadPid {
-        path: pid_file.clone(),
-        source,
-    })?;
+    let record = match PidRecord::read(&pid_file) {
+        Ok(record) => record,
+        Err(source) if source.kind() == io::ErrorKind::InvalidData => {
+            PidRecord::remove(&pid_file).map_err(|source| StopError::RemovePid {
+                path: pid_file,
+                source,
+            })?;
+            return Ok(Outcome::NotRunning);
+        }
+        Err(source) => {
+            return Err(StopError::ReadPid {
+                path: pid_file,
+                source,
+            });
+        }
+    };
     let Some(record) = record else {
         return Ok(Outcome::NotRunning);
     };
