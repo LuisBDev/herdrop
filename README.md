@@ -36,49 +36,55 @@ sequenceDiagram
 
 ## Requirements
 
-- Google Chrome with side panel support.
+- Google Chrome or Chrome Dev with side panel support.
 - Herdr 0.9.5 or later.
-- Rust 1.99 or later. Herdr builds the bridge from source when you link the plugin.
-- Bun 1.4.4 or later, to build the extension.
+- Windows or Linux on x86_64 for the bridge. Releases ship prebuilt binaries for these two platforms only.
 
-Herdrop is tested on Windows 10 with Herdr 0.9.5. The plugin manifest also declares Linux and macOS, and CI builds and tests on Ubuntu and Windows.
+You need Rust 1.99 or later and Bun 1.4.4 or later only to develop Herdrop. An installed plugin downloads prebuilt files and builds nothing.
+
+Herdrop is tested on Windows 10 with Herdr 0.9.5. CI builds and tests on Ubuntu and Windows.
 
 ## Install
 
 Install the plugin and load the extension on the machine that runs Chrome. Remote machines need only Herdr and SSH access.
 
-1. Clone the repository and install the dependencies.
+1. Install the plugin from the `release` branch. Herdr downloads the bridge and the extension of the latest release and checks their SHA-256 sums.
 
    ```sh
-   git clone https://github.com/LuisBDev/herdrop.git
-   cd herdrop
-   bun install
+   herdr plugin install LuisBDev/herdrop/apps/bridge --ref release --yes
    ```
 
-2. Link the bridge as a Herdr plugin. Herdr runs `cargo build --release --locked` in `apps/bridge`.
-
-   ```sh
-   herdr plugin link /absolute/path/to/herdrop/apps/bridge
-   ```
-
-3. Start the bridge and check that it answers.
+2. Start the bridge and check that it answers.
 
    ```sh
    herdr plugin action invoke start --plugin herdrop
    curl http://127.0.0.1:47821/health
    ```
 
-   On Windows, the action is `start-windows`. The health check returns `{"name":"herdrop","version":"0.1.0"}`.
+   On Windows, the action is `start-windows`. The health check returns the bridge `version` and the `extension_version` that the bridge deployed.
 
-4. Build the extension.
+3. Find the extension folder. The bridge copies the extension into the plugin state folder, and the folder stays the same across updates.
 
    ```sh
-   bun run --cwd apps/extension build
+   herdr plugin action invoke extension-path --plugin herdrop
    ```
 
-5. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose `apps/extension/.output/chrome-mv3`. The extension ID is `jclnmampofninmpoobjahafbkhfckbif`. The manifest `key` fixes the ID, and the bridge accepts requests only from it.
+   On Windows, the action is `extension-path-windows`. Herdr shows the folder in a notification.
+
+4. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose that folder. Chrome Dev works the same way. The extension ID is `jclnmampofninmpoobjahafbkhfckbif`. The manifest `key` fixes the ID, and the bridge accepts requests only from it.
 
 Herdrop is not published in the Chrome Web Store.
+
+### Updates
+
+Each release is published once on GitHub. Every installed plugin picks it up by itself.
+
+1. About a minute after the bridge starts, and then every hour, the bridge runs `herdr plugin update herdrop --yes`.
+2. When Herdr installs a new version, the bridge waits until no drop is in flight and runs the start action of the new install. The new bridge stops the old one and takes over the port.
+3. The new bridge copies its extension into the extension folder.
+4. The extension checks the bridge when Chrome starts it and every 15 minutes. When the folder holds another version, the extension reloads itself. It waits while the draft holds annotations, because a reload clears the draft.
+
+To turn this off, set `auto_update = false` in `config.toml`. To update by hand, run `herdr plugin update herdrop --yes` and then the start action.
 
 ## Use it
 
@@ -125,6 +131,7 @@ Every key is optional:
 port = 47821
 retention_days = 7
 extension_id = "jclnmampofninmpoobjahafbkhfckbif"
+auto_update = true
 ```
 
 | Key              | Default        | Meaning                                                                                                              |
@@ -132,17 +139,19 @@ extension_id = "jclnmampofninmpoobjahafbkhfckbif"
 | `port`           | `47821`        | Loopback port of the bridge. The extension expects `47821`.                                                          |
 | `retention_days` | `7`            | Each time the bridge writes a bundle, it deletes bundles older than this from the same folder.                       |
 | `extension_id`   | the bundled ID | The only extension origin that the bridge accepts. Change it only if you build the extension with a different `key`. |
+| `auto_update`    | `true`         | Checks GitHub for a new release every hour and switches to it. A linked plugin never updates.                        |
 
 ## Plugin actions
 
 Run an action with `herdr plugin action invoke <action> --plugin herdrop`. On Windows, add the `-windows` suffix to the action name, for example `start-windows`.
 
-| Action   | What it does                                                                                   |
-| -------- | ---------------------------------------------------------------------------------------------- |
-| `start`  | Starts the bridge in the background. If a bridge already answers on the port, it does nothing. |
-| `stop`   | Stops the bridge.                                                                              |
-| `status` | Reports the bridge state as a Herdr notification.                                              |
-| `prune`  | Deletes old bundles from the focused pane's working folder.                                    |
+| Action           | What it does                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `start`          | Starts the bridge in the background. If the same version already answers on the port, it does nothing. If another version answers, it stops it first. |
+| `stop`           | Stops the bridge.                                                                                                                                     |
+| `status`         | Reports the running bridge version and the extension folder as a Herdr notification.                                                                  |
+| `extension-path` | Shows the folder to load in Chrome as a Herdr notification.                                                                                           |
+| `prune`          | Deletes old bundles from the focused pane's working folder.                                                                                           |
 
 The plugin also declares a startup command that runs `herdrop start`. The bridge keeps its PID file and log in the Herdr plugin state folder, so run `stop` through the plugin action and not from a plain shell.
 
@@ -159,6 +168,19 @@ The bridge guards against web pages that try to call it. It does not guard again
 
 ## Develop
 
+To run the bridge from a checkout, link the plugin instead of installing it. `herdr plugin link` does not run the manifest build commands, so build the bridge and the extension yourself.
+
+```sh
+git clone https://github.com/LuisBDev/herdrop.git
+cd herdrop
+bun install
+cargo build --release --locked --manifest-path apps/bridge/Cargo.toml
+bun run --cwd apps/extension build
+herdr plugin link /absolute/path/to/herdrop/apps/bridge
+```
+
+Load `apps/extension/.output/chrome-mv3` in Chrome. A linked plugin never updates itself, and its bridge deploys no extension. Herdr refuses to install over a linked plugin, so run `herdr plugin unlink herdrop` before you switch to the installed one.
+
 | Command                            | What it runs                                                                                                                             |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `bun run check`                    | Biome, TypeScript, Vitest, `cargo fmt`, `cargo clippy`, `cargo test`, and a check that the generated protocol types match the Rust types |
@@ -168,14 +190,25 @@ The bridge guards against web pages that try to call it. It does not guard again
 
 `bun run e2e` overwrites `apps/extension/.output/chrome-mv3` with a test build that allows `localhost`. Rebuild with `bun run --cwd apps/extension build` before you load the extension again.
 
+## Release
+
+`apps/bridge/Cargo.toml` holds the only version. The extension build and `herdr-plugin.toml` follow it.
+
+1. On `master` with a clean tree, run `bun run release 0.2.0`. The script bumps the version, commits `chore(release): v0.2.0`, and creates the tag `v0.2.0`. It pushes nothing.
+2. Push the commit and the tag with the command that the script prints, for example `git push --atomic origin master v0.2.0`.
+3. The release workflow checks that the tag matches the crate version and sits on `master`. It builds both bridge binaries and the extension, and publishes them with `SHA256SUMS` as a GitHub release. Then it moves the `release` branch to the tag, and installed plugins pick it up within the hour.
+
+A version with a prerelease suffix, such as `0.2.0-rc.1`, is published as a GitHub prerelease and leaves the `release` branch alone.
+
 ## Repository layout
 
 ```text
 apps/
 ├── extension/      # Chrome extension: WXT, Solid, Tailwind CSS
-└── bridge/         # Rust bridge (axum, tokio) and herdr-plugin.toml
+└── bridge/         # Rust bridge (axum, tokio), herdr-plugin.toml, and the release fetch scripts
 packages/
 └── protocol/       # TypeScript types generated from the bridge with ts-rs
+scripts/            # release.ts, which bumps the version and tags a release
 e2e/                # Playwright tests, a fake herdr, and fixture sites
 DESIGN.md           # visual system of the extension UI
 ```
