@@ -9,6 +9,17 @@ const { key } = JSON.parse(
   readFileSync(new URL('../../packages/protocol/fixtures/extension.json', import.meta.url), 'utf8'),
 ) as { key: string };
 
+function bridgeVersion(): string {
+  const cargo = readFileSync(new URL('../bridge/Cargo.toml', import.meta.url), 'utf8');
+  const section = cargo.split(/^\[/m).find((part) => part.startsWith('package]'));
+  const version = section?.match(/^version\s*=\s*"([^"]+)"/m)?.[1];
+  if (!version) throw new Error('apps/bridge/Cargo.toml has no [package] version');
+  return version;
+}
+
+const version = bridgeVersion();
+const versionWithoutPrerelease = version.split('-')[0] ?? version;
+
 export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-solid'],
@@ -16,6 +27,8 @@ export default defineConfig({
   manifest: {
     name: 'Herdrop',
     description: 'Point at page elements and hand them to a coding agent in Herdr.',
+    version: versionWithoutPrerelease,
+    version_name: version,
     key,
     permissions: ['storage', 'sidePanel', 'scripting', 'tabs'],
     host_permissions: ['http://127.0.0.1/*', ...(e2e ? ['http://localhost/*'] : [])],

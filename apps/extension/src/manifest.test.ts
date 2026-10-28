@@ -6,6 +6,7 @@ import { expect, it } from 'vitest';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MANIFEST = resolve(HERE, '../.output/chrome-mv3/manifest.json');
 const FIXTURE = resolve(HERE, '../../../packages/protocol/fixtures/extension.json');
+const BRIDGE_CARGO = resolve(HERE, '../../bridge/Cargo.toml');
 const GRANTABLE = ['http://*/*', 'https://*/*'];
 
 type WebAccessible = { resources: string[]; matches?: string[]; use_dynamic_url?: boolean };
@@ -23,6 +24,8 @@ it('built_manifest_matches_the_extension_contract', () => {
   expect(manifest.action).not.toHaveProperty('default_popup');
   expect(manifest.side_panel).toMatchObject({ default_path: expect.any(String) });
   expect(manifest.key).toBe(key);
+  const crateVersion = readFileSync(BRIDGE_CARGO, 'utf8').match(/^version = "(.+)"$/m)?.[1];
+  expect(manifest.version_name ?? manifest.version).toBe(crateVersion);
   expect(manifest.permissions).toEqual(
     expect.arrayContaining(['storage', 'sidePanel', 'scripting', 'tabs']),
   );
