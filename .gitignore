@@ -9,6 +9,7 @@ dist/
 .odd
 docs/superpowers
 target/
+apps/bridge/extension/
 .output/
 .wxt/
 test-results/

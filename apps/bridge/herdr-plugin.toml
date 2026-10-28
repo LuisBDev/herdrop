@@ -3,14 +3,19 @@ name = "Herdrop"
 version = "0.1.0"
 min_herdr_version = "0.9.5"
 description = "Deliver browser annotations to agents in Herdr panes."
-platforms = ["linux", "macos", "windows"]
+platforms = ["linux", "windows"]
 
 [[build]]
-command = ["cargo", "build", "--release", "--locked"]
+command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/fetch-release.ps1"]
+platforms = ["windows"]
+
+[[build]]
+command = ["sh", "scripts/fetch-release.sh"]
+platforms = ["linux"]
 
 [[startup]]
 command = ["target/release/herdrop", "start"]
-platforms = ["linux", "macos"]
+platforms = ["linux"]
 
 [[startup]]
 command = ['.\target\release\herdrop.exe', "start"]
@@ -20,7 +25,7 @@ platforms = ["windows"]
 id = "start"
 title = "Start Herdrop bridge"
 contexts = ["global"]
-platforms = ["linux", "macos"]
+platforms = ["linux"]
 command = ["target/release/herdrop", "start"]
 
 [[actions]]
@@ -34,7 +39,7 @@ command = ['.\target\release\herdrop.exe', "start"]
 id = "stop"
 title = "Stop Herdrop bridge"
 contexts = ["global"]
-platforms = ["linux", "macos"]
+platforms = ["linux"]
 command = ["target/release/herdrop", "stop"]
 
 [[actions]]
@@ -48,7 +53,7 @@ command = ['.\target\release\herdrop.exe', "stop"]
 id = "status"
 title = "Herdrop status"
 contexts = ["global"]
-platforms = ["linux", "macos"]
+platforms = ["linux"]
 command = ["target/release/herdrop", "status"]
 
 [[actions]]
@@ -62,7 +67,7 @@ command = ['.\target\release\herdrop.exe', "status"]
 id = "extension-path"
 title = "Show Herdrop extension folder"
 contexts = ["global"]
-platforms = ["linux", "macos"]
+platforms = ["linux"]
 command = ["target/release/herdrop", "extension-path"]
 
 [[actions]]
@@ -76,7 +81,7 @@ command = ['.\target\release\herdrop.exe', "extension-path"]
 id = "prune"
 title = "Prune old drops"
 contexts = ["pane"]
-platforms = ["linux", "macos"]
+platforms = ["linux"]
 command = ["target/release/herdrop", "prune"]
 
 [[actions]]
