@@ -13,7 +13,16 @@ use crate::ports::{
 };
 use crate::protocol::{AgentView, AgentsResponse, MachineView, MachinesResponse};
 
-pub const AGENTS_FRESH_FOR: SignedDuration = SignedDuration::from_secs(10);
+const LOCAL_AGENTS_FRESH_FOR: SignedDuration = SignedDuration::from_secs(1);
+const REMOTE_AGENTS_FRESH_FOR: SignedDuration = SignedDuration::from_secs(10);
+
+fn fresh_for(key: &MachineKey) -> SignedDuration {
+    if key.is_local() {
+        LOCAL_AGENTS_FRESH_FOR
+    } else {
+        REMOTE_AGENTS_FRESH_FOR
+    }
+}
 
 struct Entry {
     agents: Vec<AgentRecord>,
@@ -38,9 +47,9 @@ impl Default for Entry {
 }
 
 impl Entry {
-    fn is_stale(&self, now: Timestamp) -> bool {
+    fn is_stale(&self, key: &MachineKey, now: Timestamp) -> bool {
         self.checked_at
-            .is_none_or(|checked| now.duration_since(checked) >= AGENTS_FRESH_FOR)
+            .is_none_or(|checked| now.duration_since(checked) >= fresh_for(key))
     }
 
     fn record(
@@ -141,7 +150,7 @@ impl AgentCatalog {
     fn claim(&self, key: &MachineKey, force: bool, now: Timestamp) -> (bool, AgentsResponse) {
         let mut state = self.lock();
         let entry = state.entries.entry(key.clone()).or_default();
-        let start = !entry.in_flight && (force || entry.is_stale(now));
+        let start = !entry.in_flight && (force || entry.is_stale(key, now));
         if start {
             entry.in_flight = true;
         }

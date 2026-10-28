@@ -19,7 +19,7 @@ export function MachineGroup(props: {
   const error = () =>
     machineError(machine(), props.machinesError, props.group.resp, props.group.failed);
   const agents = () => props.group.resp?.agents ?? [];
-  const refreshLabel = () => `Refresh agents on ${machine().label}`;
+  const refreshLabel = () => `Refresh agents on ${machineName(machine())}`;
   return (
     <div>
       <div class="mb-1.5 flex min-h-8 items-center gap-2">
@@ -30,7 +30,7 @@ export function MachineGroup(props: {
         <span class="ml-auto text-xs text-ink-subtle" aria-live="polite">
           {metaText(props.group.resp, machine().local, props.now)}
         </span>
-        <Show when={!machine().local && error() === null}>
+        <Show when={error() === null}>
           <Tooltip content={refreshLabel()}>
             <Button
               variant="ghost"
@@ -41,7 +41,7 @@ export function MachineGroup(props: {
               <RefreshCw
                 size={16}
                 aria-hidden="true"
-                class={cn(props.group.polling && 'animate-spin')}
+                class={cn(props.group.busy && 'animate-spin')}
               />
             </Button>
           </Tooltip>
@@ -63,7 +63,7 @@ export function MachineGroup(props: {
           </div>
         )}
       </Show>
-      <Show when={error() === null && !props.group.polling && agents().length === 0}>
+      <Show when={error() === null && !props.group.busy && agents().length === 0}>
         <p class="rounded-md border border-dashed border-hairline px-3 py-2.5 text-[13px] text-ink-subtle">
           No agents running
         </p>

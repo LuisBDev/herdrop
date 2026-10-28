@@ -3,18 +3,23 @@ import { type Accessor, createSignal } from 'solid-js';
 import { type BridgeClient, BridgeUnreachable } from '../../bridge/client.ts';
 import { type Pick, preselect } from './agents-view.ts';
 
-const POLL_MS = 2000;
-const MAX_REFRESHING = 30;
+const POLL_MS = 1000;
 const TICK_MS = 1000;
 
 type TimerId = ReturnType<typeof setTimeout>;
+
+type Visibility = EventTarget & { readonly visibilityState: DocumentVisibilityState };
+
+type FetchMode = 'initial' | 'forced' | 'tick';
+
+type Poll = { timer: TimerId | undefined; inFlight: boolean; forcePending: boolean };
 
 export type BridgeState = 'loading' | 'ready' | 'unreachable';
 
 export type AgentGroup = {
   machine: MachineView;
   resp: AgentsResponse | null;
-  polling: boolean;
+  busy: boolean;
   failed: boolean;
 };
 
@@ -35,11 +40,13 @@ export function createAgents(deps: {
   setTimer?: typeof setTimeout;
   clearTimer?: typeof clearTimeout;
   now?: () => number;
+  visibility?: Visibility;
 }): Agents {
   const { client } = deps;
   const setTimer = deps.setTimer ?? setTimeout;
   const clearTimer = deps.clearTimer ?? clearTimeout;
   const clock = deps.now ?? Date.now;
+  const visibility = deps.visibility ?? document;
 
   const [bridge, setBridge] = createSignal<BridgeState>('loading');
   const [groups, setGroups] = createSignal<AgentGroup[]>([]);
@@ -47,8 +54,7 @@ export function createAgents(deps: {
   const [pick, setPick] = createSignal<Pick | null>(null);
   const [now, setNow] = createSignal(clock());
 
-  const pollTimers = new Map<string, TimerId>();
-  const refreshingCounts = new Map<string, number>();
+  let polls = new Map<string, Poll>();
   let generation = 0;
   let disposed = false;
 
@@ -58,56 +64,78 @@ export function createAgents(deps: {
   };
   let tickTimer: TimerId | undefined = setTimer(tick, TICK_MS);
 
+  const visible = () => visibility.visibilityState === 'visible';
+
   function update(key: string, change: Partial<Omit<AgentGroup, 'machine'>>) {
     const next = groups().map((g) => (g.machine.key === key ? { ...g, ...change } : g));
     setGroups(next);
     setPick(preselect(next, pick()));
   }
 
-  function stopPolling(key: string) {
-    const timer = pollTimers.get(key);
-    if (timer !== undefined) clearTimer(timer);
-    pollTimers.delete(key);
+  function stopTimer(poll: Poll) {
+    if (poll.timer !== undefined) clearTimer(poll.timer);
+    poll.timer = undefined;
   }
 
-  function stopAllPolling() {
-    for (const key of [...pollTimers.keys()]) stopPolling(key);
-    refreshingCounts.clear();
+  function stopAllTimers() {
+    for (const poll of polls.values()) stopTimer(poll);
   }
 
-  async function fetchAgents(key: string, refresh: boolean, gen: number): Promise<void> {
-    stopPolling(key);
-    update(key, { polling: true });
-    let resp: AgentsResponse;
-    try {
-      resp = refresh ? await client.agents(key, { refresh: true }) : await client.agents(key);
-    } catch (error) {
-      if (gen !== generation || disposed) return;
-      const unreachable = error instanceof BridgeUnreachable;
-      if (unreachable) setBridge('unreachable');
-      refreshingCounts.delete(key);
-      update(key, { polling: false, failed: !unreachable });
+  function next(key: string, poll: Poll, gen: number) {
+    if (gen !== generation || disposed) return;
+    if (poll.forcePending) {
+      poll.forcePending = false;
+      void fetchAgents(key, poll, 'forced', gen);
       return;
     }
+    if (!visible()) return;
+    poll.timer = setTimer(() => {
+      poll.timer = undefined;
+      void fetchAgents(key, poll, 'tick', gen);
+    }, POLL_MS);
+  }
+
+  async function fetchAgents(key: string, poll: Poll, mode: FetchMode, gen: number) {
+    stopTimer(poll);
+    poll.inFlight = true;
+    if (mode !== 'tick') update(key, { busy: true });
+    let resp: AgentsResponse;
+    try {
+      resp =
+        mode === 'forced' ? await client.agents(key, { refresh: true }) : await client.agents(key);
+    } catch (error) {
+      poll.inFlight = false;
+      if (gen !== generation || disposed) return;
+      if (mode !== 'tick') {
+        const unreachable = error instanceof BridgeUnreachable;
+        if (unreachable) setBridge('unreachable');
+        update(key, { busy: poll.forcePending, failed: !unreachable });
+      }
+      next(key, poll, gen);
+      return;
+    }
+    poll.inFlight = false;
     if (gen !== generation || disposed) return;
-    const count = resp.refreshing ? (refreshingCounts.get(key) ?? 0) + 1 : 0;
-    refreshingCounts.set(key, count);
-    const again = resp.refreshing && count < MAX_REFRESHING;
-    update(key, { resp, polling: again, failed: false });
-    if (again) {
-      pollTimers.set(
-        key,
-        setTimer(() => {
-          pollTimers.delete(key);
-          void fetchAgents(key, false, gen);
-        }, POLL_MS),
-      );
+    const shown = groups().find((g) => g.machine.key === key)?.busy ?? false;
+    update(key, { resp, busy: poll.forcePending || (shown && resp.refreshing), failed: false });
+    next(key, poll, gen);
+  }
+
+  function onVisibilityChange() {
+    if (!visible()) {
+      stopAllTimers();
+      return;
+    }
+    for (const [key, poll] of polls) {
+      if (!poll.inFlight) void fetchAgents(key, poll, 'tick', generation);
     }
   }
+  visibility.addEventListener('visibilitychange', onVisibilityChange);
 
   async function reload(): Promise<void> {
     const gen = ++generation;
-    stopAllPolling();
+    stopAllTimers();
+    polls = new Map();
     setBridge('loading');
     let machines: MachineView[];
     let error: string | null;
@@ -119,16 +147,26 @@ export function createAgents(deps: {
     }
     if (gen !== generation || disposed) return;
     setMachinesError(error);
-    setGroups(machines.map((machine) => ({ machine, resp: null, polling: false, failed: false })));
+    setGroups(machines.map((machine) => ({ machine, resp: null, busy: false, failed: false })));
     setPick(preselect(groups(), pick()));
     setBridge('ready');
-    await Promise.all(machines.map((m) => fetchAgents(m.key, false, gen)));
+    const started = machines.map((m) => {
+      const poll: Poll = { timer: undefined, inFlight: false, forcePending: false };
+      polls.set(m.key, poll);
+      return fetchAgents(m.key, poll, 'initial', gen);
+    });
+    await Promise.all(started);
   }
 
   async function refresh(machineKey: string): Promise<void> {
-    if (!groups().some((g) => g.machine.key === machineKey)) return;
-    refreshingCounts.delete(machineKey);
-    await fetchAgents(machineKey, true, generation);
+    const poll = polls.get(machineKey);
+    if (!poll) return;
+    if (poll.inFlight) {
+      poll.forcePending = true;
+      update(machineKey, { busy: true });
+      return;
+    }
+    await fetchAgents(machineKey, poll, 'forced', generation);
   }
 
   return {
@@ -142,7 +180,8 @@ export function createAgents(deps: {
     now,
     dispose() {
       disposed = true;
-      stopAllPolling();
+      stopAllTimers();
+      visibility.removeEventListener('visibilitychange', onVisibilityChange);
       if (tickTimer !== undefined) clearTimer(tickTimer);
       tickTimer = undefined;
     },

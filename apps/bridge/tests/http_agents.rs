@@ -142,26 +142,42 @@ async fn remote_first_request_returns_refreshing_then_settles() {
 async fn fresh_window_force_flag_and_failed_refresh() {
     let tmp = tempfile::tempdir().unwrap();
     let (app, handles) = test_bridge(tmp.path());
+    handles.directory.set_machines(Ok(vec![profile()]));
     handles
         .directory
         .set_agents("local", Ok(vec![agent("p1", true)]));
+    handles
+        .directory
+        .set_agents(REMOTE_KEY, Ok(vec![agent("r1", false)]));
+    let remote = format!("/agents?machine={REMOTE_KEY}");
     let forced = format!("{LOCAL_AGENTS}&refresh=true");
     let calls = || handles.directory.agent_calls("local");
+    let remote_calls = || handles.directory.agent_calls(REMOTE_KEY);
     get(&app, LOCAL_AGENTS).await;
-    assert_eq!(calls(), 1);
+    settle(&app, &remote).await;
+    assert_eq!((calls(), remote_calls()), (1, 1));
 
-    handles.clock.advance(SignedDuration::from_secs(9));
+    handles.clock.advance(SignedDuration::from_millis(999));
     let (_, _, inside) = get(&app, LOCAL_AGENTS).await;
 
     assert_eq!(inside["refreshing"], false);
     assert_eq!(calls(), 1);
 
-    handles.clock.advance(SignedDuration::from_secs(2));
+    handles.clock.advance(SignedDuration::from_millis(1));
     let (_, _, stale) = get(&app, LOCAL_AGENTS).await;
+    let (_, _, remote_inside) = get(&app, &remote).await;
 
     assert_eq!(stale["refreshing"], true);
+    assert_eq!(remote_inside["refreshing"], false);
     settle(&app, LOCAL_AGENTS).await;
-    assert_eq!(calls(), 2);
+    assert_eq!((calls(), remote_calls()), (2, 1));
+
+    handles.clock.advance(SignedDuration::from_secs(9));
+    let (_, _, remote_stale) = get(&app, &remote).await;
+
+    assert_eq!(remote_stale["refreshing"], true);
+    settle(&app, &remote).await;
+    assert_eq!(remote_calls(), 2);
 
     let (_, _, force) = get(&app, &forced).await;
 
