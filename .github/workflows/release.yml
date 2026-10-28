@@ -1,0 +1,133 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          crate_version=$(sed -n '/^\[package\]/,/^\[/s/^version = "\(.*\)"$/\1/p' apps/bridge/Cargo.toml)
+          if [ "$version" != "$crate_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match apps/bridge/Cargo.toml version $crate_version"
+            exit 1
+          fi
+          commit=$(git rev-parse "$GITHUB_REF_NAME^{commit}")
+          if ! git merge-base --is-ancestor "$commit" origin/master; then
+            echo "::error::$GITHUB_REF_NAME points at $commit, which is not on master"
+            exit 1
+          fi
+          case "$version" in
+            *-*) prerelease=true ;;
+            *) prerelease=false ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+  bridge:
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exe: .exe
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exe: ""
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
+          targets: ${{ matrix.target }}
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+        working-directory: apps/bridge
+      - shell: bash
+        run: |
+          mkdir -p dist
+          cp "apps/bridge/target/${{ matrix.target }}/release/herdrop${{ matrix.exe }}" "dist/herdrop-${{ matrix.target }}${{ matrix.exe }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: herdrop-${{ matrix.target }}
+          path: dist/
+          if-no-files-found: error
+
+  extension:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd apps/extension build
+      - env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          built=$(bun -e 'const m = await Bun.file("apps/extension/.output/chrome-mv3/manifest.json").json(); console.log(m.version_name ?? m.version)')
+          if [ "$built" != "$VERSION" ]; then
+            echo "::error::the built extension says $built, expected $VERSION"
+            exit 1
+          fi
+          mkdir -p dist
+          tar -czf dist/herdrop-extension.tar.gz -C apps/extension/.output/chrome-mv3 .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: herdrop-extension
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: [verify, bridge, extension]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+      - working-directory: dist
+        run: |
+          sha256sum herdrop-* > SHA256SUMS
+          cat SHA256SUMS
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          set -- dist/*
+          if [ "$PRERELEASE" = true ]; then
+            set -- --prerelease "$@"
+          fi
+          gh release create "v$VERSION" --verify-tag --title "v$VERSION" --generate-notes "$@"
+      - if: needs.verify.outputs.prerelease == 'false'
+        run: git push origin "$(git rev-parse "$GITHUB_REF_NAME^{commit}"):refs/heads/release"
