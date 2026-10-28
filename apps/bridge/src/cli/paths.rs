@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 const STATE_DIR_ENV: &str = "HERDR_PLUGIN_STATE_DIR";
+const PLUGIN_ROOT_ENV: &str = "HERDR_PLUGIN_ROOT";
 
 #[derive(Debug, thiserror::Error)]
 pub enum PathsError {
@@ -13,6 +14,12 @@ pub enum PathsError {
 
 pub fn home_dir() -> Result<PathBuf, PathsError> {
     std::env::home_dir().ok_or(PathsError::NoHome)
+}
+
+pub fn packaged_extension_dir() -> Option<PathBuf> {
+    std::env::var_os(PLUGIN_ROOT_ENV)
+        .filter(|root| !root.is_empty())
+        .map(|root| PathBuf::from(root).join("extension"))
 }
 
 #[derive(Debug, Clone)]

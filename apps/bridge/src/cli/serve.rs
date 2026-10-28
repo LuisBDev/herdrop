@@ -15,10 +15,11 @@ use crate::adapters::machine_store::MachineBundleStore;
 use crate::adapters::ssh_store::SshBundleStore;
 use crate::app::bridge::Bridge;
 use crate::cli::config::{Config, ConfigError};
-use crate::cli::paths::{PathsError, StatePaths, home_dir};
+use crate::cli::paths::{PathsError, StatePaths, home_dir, packaged_extension_dir};
 use crate::domain::retention::RetentionPolicy;
 use crate::http::router;
 use crate::http::security::SecurityConfig;
+use crate::unpacked::{self, Deployment};
 
 const DEFAULT_FILTER: &str = "herdrop=info";
 const SSH_PROGRAM: &str = "ssh";
@@ -100,6 +101,9 @@ async fn serve(port: Option<u16>, config: Option<&Path>, no_warm: bool) -> Resul
         tokio::spawn(async move { warming.warm().await });
     }
     let state = StatePaths::from_env();
+    if let Some(packaged) = packaged_extension_dir() {
+        deploy_extension(packaged, state.extension_dir()).await;
+    }
     let app = router(
         bridge,
         SecurityConfig::new(port, &config.extension_id),
@@ -110,6 +114,18 @@ async fn serve(port: Option<u16>, config: Option<&Path>, no_warm: bool) -> Resul
         .with_graceful_shutdown(shutdown_signal())
         .await
         .map_err(ServeError::Server)
+}
+
+async fn deploy_extension(packaged: PathBuf, deployed: PathBuf) {
+    let task = tokio::task::spawn_blocking(move || unpacked::deploy(&packaged, &deployed));
+    match task.await {
+        Ok(Ok(Deployment::Installed(version))) => {
+            tracing::info!(%version, "deployed the extension");
+        }
+        Ok(Ok(Deployment::Current(_) | Deployment::NoPackage)) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "cannot deploy the extension"),
+        Err(error) => tracing::warn!(%error, "extension deploy task failed"),
+    }
 }
 
 async fn shutdown_signal() {

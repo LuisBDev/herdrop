@@ -66,3 +66,36 @@ async fn serve_answers_health_and_logs_rejections_to_the_file() {
         Err(ErrorKind::ValueValidation)
     ));
 }
+
+#[tokio::test]
+async fn serve_deploys_the_packaged_extension_into_the_state_folder() {
+    let tmp = tempfile::tempdir().unwrap();
+    let port = free_port();
+    let packaged = tmp.path().join("plugin").join("extension");
+    std::fs::create_dir_all(&packaged).unwrap();
+    std::fs::write(
+        packaged.join("manifest.json"),
+        r#"{"manifest_version":3,"version":"9.9.9"}"#,
+    )
+    .unwrap();
+    let child = herdrop(tmp.path())
+        .env("HERDR_PLUGIN_ROOT", tmp.path().join("plugin"))
+        .args(["serve", "--port", &port.to_string(), "--no-warm"])
+        .spawn()
+        .unwrap();
+    let _guard = ChildGuard(child);
+
+    assert!(wait_until(Duration::from_secs(5), || probe::health(port)).await);
+
+    let health = probe::bridge(port).await.expect("health");
+    assert_eq!(health.extension_version.as_deref(), Some("9.9.9"));
+    let deployed = tmp
+        .path()
+        .join("state")
+        .join("extension")
+        .join("manifest.json");
+    assert_eq!(
+        std::fs::read_to_string(deployed).unwrap(),
+        r#"{"manifest_version":3,"version":"9.9.9"}"#
+    );
+}

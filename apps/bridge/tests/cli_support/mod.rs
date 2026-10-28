@@ -10,8 +10,9 @@ use std::time::{Duration, Instant};
 use herdrop::cli::paths::PidRecord;
 
 const POLL: Duration = Duration::from_millis(50);
-const HERDR_VARS: [&str; 6] = [
+const HERDR_VARS: [&str; 7] = [
     "HERDR_ENV",
+    "HERDR_PLUGIN_ROOT",
     "HERDR_SOCKET_PATH",
     "HERDR_PANE_ID",
     "HERDR_WORKSPACE_ID",
