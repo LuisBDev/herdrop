@@ -12,7 +12,7 @@ use crate::adapters::fs_store::FsBundleStore;
 use crate::adapters::herdr_cli::HerdrCli;
 use crate::domain::folder::EffectiveFolder;
 use crate::domain::retention::RetentionPolicy;
-use crate::ports::{AgentDirectory, BundleLocation, Machine};
+use crate::ports::{BundleLocation, Machine};
 
 const CONTEXT_ENV: &str = "HERDR_PLUGIN_CONTEXT_JSON";
 const NO_FOLDER: &str = "No pane folder";
@@ -46,13 +46,13 @@ async fn is_local_dir(cwd: &str) -> bool {
 }
 
 async fn is_local_pane(pane: &FocusedPane) -> bool {
-    match HerdrCli::from_env().agents(&Machine::Local).await {
-        Ok(agents) => pane
+    match HerdrCli::from_env().local_pane_ids().await {
+        Ok(ids) => pane
             .id
             .as_deref()
-            .is_some_and(|id| agents.iter().any(|agent| agent.pane_id.as_str() == id)),
+            .is_some_and(|id| ids.iter().any(|pane_id| pane_id == id)),
         Err(error) => {
-            tracing::warn!(%error, "local herdr roster unavailable, checking the folder instead");
+            tracing::warn!(%error, "local herdr pane list unavailable, checking the folder instead");
             is_local_dir(&pane.cwd).await
         }
     }

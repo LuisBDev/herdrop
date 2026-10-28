@@ -46,6 +46,22 @@ struct AgentInfo {
 }
 
 #[derive(Deserialize)]
+struct PaneListEnvelope {
+    result: PaneListResult,
+}
+
+#[derive(Deserialize)]
+struct PaneListResult {
+    #[serde(default)]
+    panes: Vec<PaneInfo>,
+}
+
+#[derive(Deserialize)]
+struct PaneInfo {
+    pane_id: String,
+}
+
+#[derive(Deserialize)]
 struct ErrorEnvelope {
     error: ErrorBody,
 }
@@ -96,6 +112,17 @@ pub(crate) fn parse_agent_list(stdout: &str) -> Result<Vec<AgentRecord>, Directo
         .agents
         .into_iter()
         .filter_map(agent_record)
+        .collect())
+}
+
+pub(crate) fn parse_pane_ids(stdout: &str) -> Result<Vec<String>, DirectoryError> {
+    let envelope: PaneListEnvelope =
+        serde_json::from_str(stdout).map_err(|error| DirectoryError::Parse(error.to_string()))?;
+    Ok(envelope
+        .result
+        .panes
+        .into_iter()
+        .map(|pane| pane.pane_id)
         .collect())
 }
 

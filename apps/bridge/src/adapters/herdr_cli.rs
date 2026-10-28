@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use std::process::Output;
 use std::time::Duration;
 
-use crate::adapters::herdr_json::{parse_agent_list, parse_error, parse_machine_list};
+use crate::adapters::herdr_json::{
+    parse_agent_list, parse_error, parse_machine_list, parse_pane_ids,
+};
 use crate::domain::ids::PaneId;
 use crate::ports::{
     AgentDirectory, AgentPrompter, AgentRecord, DirectoryError, Machine, MachineProfile,
@@ -60,6 +62,14 @@ impl HerdrCli {
             Ok(Ok(output)) => Ok(output),
         }
     }
+
+    pub async fn local_pane_ids(&self) -> Result<Vec<String>, DirectoryError> {
+        let output = self
+            .run(pane_list_args(), LIST_RUN_TIMEOUT)
+            .await
+            .map_err(run_directory_error)?;
+        parse_pane_ids(&checked_stdout(&output, &Machine::Local)?)
+    }
 }
 
 pub(crate) fn machine_list_args() -> Vec<String> {
@@ -70,6 +80,10 @@ pub(crate) fn agent_list_args(machine: &Machine) -> Vec<String> {
     let mut args = machine_args(machine);
     args.extend(strings(&["agent", "list"]));
     args
+}
+
+pub(crate) fn pane_list_args() -> Vec<String> {
+    strings(&["pane", "list"])
 }
 
 pub(crate) fn prompt_args(machine: &Machine, pane: &PaneId, line: &str) -> Vec<String> {
