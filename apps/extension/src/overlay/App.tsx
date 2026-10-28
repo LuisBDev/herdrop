@@ -4,6 +4,7 @@ import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { captureTarget } from '../capture/target.ts';
 import { requestFramework } from '../inspector/channel.ts';
 import { copyText } from '../lib/clipboard.ts';
+import { newUuid } from '../lib/uuid.ts';
 import { backgroundMessenger } from '../messaging/background.ts';
 import { panelMessenger } from '../messaging/panel.ts';
 import { tabMessenger } from '../messaging/tab.ts';
@@ -79,7 +80,7 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
     setPendingNote: (n) => backgroundMessenger.sendMessage('setPendingNote', n),
     locate: (selector) => locate(selector),
     viewport: () => ({ width: innerWidth, height: innerHeight }),
-    newId: () => crypto.randomUUID(),
+    newId: () => newUuid(),
   });
   onCleanup(
     state.onPick('select', (el) => {
