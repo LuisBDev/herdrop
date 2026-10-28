@@ -19,5 +19,11 @@
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineEnding": "lf", "lineWidth": 100 },
   "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
   "css": { "parser": { "tailwindDirectives": true } },
-  "linter": { "rules": { "preset": "recommended" } }
+  "linter": { "rules": { "preset": "recommended" } },
+  "overrides": [
+    {
+      "includes": ["e2e/support/**"],
+      "linter": { "rules": { "correctness": { "noEmptyPattern": "off" } } }
+    }
+  ]
 }

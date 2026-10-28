@@ -87,7 +87,7 @@ export function NoteBox(props: NoteBoxProps) {
       role="dialog"
       aria-labelledby={titleId}
       style={{ left: `${props.pos.left}px`, top: `${props.pos.top}px` }}
-      onKeyDown={onRootKey}
+      on:keydown={onRootKey}
       onMouseEnter={() => props.onHover(true)}
       onMouseLeave={() => props.onHover(false)}
     >
@@ -99,7 +99,7 @@ export function NoteBox(props: NoteBoxProps) {
             data-grip="1"
             aria-label="Move note"
             aria-describedby={moveTipId}
-            onKeyDown={onGripKey}
+            on:keydown={onGripKey}
           >
             <GripVertical size={16} aria-hidden="true" />
           </button>
@@ -175,6 +175,7 @@ export function NoteBox(props: NoteBoxProps) {
                     name={`hd-intent-${id}`}
                     value={o.value}
                     checked={props.note.intent === o.value}
+                    aria-label={o.value}
                     aria-describedby={`hd-tt-int-${o.value}-${id}`}
                     onChange={() => props.onChange({ intent: o.value, error: null })}
                   />
