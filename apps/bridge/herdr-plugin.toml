@@ -59,6 +59,20 @@ platforms = ["windows"]
 command = ['.\target\release\herdrop.exe', "status"]
 
 [[actions]]
+id = "extension-path"
+title = "Show Herdrop extension folder"
+contexts = ["global"]
+platforms = ["linux", "macos"]
+command = ["target/release/herdrop", "extension-path"]
+
+[[actions]]
+id = "extension-path-windows"
+title = "Show Herdrop extension folder"
+contexts = ["global"]
+platforms = ["windows"]
+command = ['.\target\release\herdrop.exe', "extension-path"]
+
+[[actions]]
 id = "prune"
 title = "Prune old drops"
 contexts = ["pane"]

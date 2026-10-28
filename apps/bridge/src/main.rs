@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use herdrop::cli::{Cli, Command, prune, serve, start, status, stop};
+use herdrop::cli::{Cli, Command, extension_path, prune, serve, start, status, stop};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -23,5 +23,6 @@ async fn main() -> ExitCode {
         Command::Stop => stop::run().await,
         Command::Status { port, config } => status::run(port, config).await,
         Command::Prune { config } => prune::run(config).await,
+        Command::ExtensionPath => extension_path::run().await,
     }
 }

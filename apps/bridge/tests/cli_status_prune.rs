@@ -30,7 +30,15 @@ async fn status_reports_running_and_not_running() {
         "{warned}"
     );
 
+    let packaged = tmp.path().join("plugin").join("extension");
+    std::fs::create_dir_all(&packaged).unwrap();
+    std::fs::write(
+        packaged.join("manifest.json"),
+        r#"{"manifest_version":3,"version":"9.9.9"}"#,
+    )
+    .unwrap();
     let child = herdrop(tmp.path())
+        .env("HERDR_PLUGIN_ROOT", tmp.path().join("plugin"))
         .arg("serve")
         .arg("--port")
         .arg(port.to_string())
@@ -40,20 +48,59 @@ async fn status_reports_running_and_not_running() {
     let _guard = ChildGuard(child);
     assert!(wait_until(Duration::from_secs(5), || probe::health(port)).await);
 
-    let running = herdrop(tmp.path())
+    let running = status(tmp.path(), port);
+    let extension_dir = tmp.path().join("state").join("extension");
+    assert_eq!(
+        running,
+        format!(
+            "Bridge running on 127.0.0.1:{port}, v{}. Extension v9.9.9 at {}",
+            env!("CARGO_PKG_VERSION"),
+            extension_dir.display()
+        )
+    );
+}
+
+#[tokio::test]
+async fn status_reports_the_version_the_running_bridge_answers_with() {
+    let tmp = tempfile::tempdir().unwrap();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    std::thread::spawn(move || cli_support::serve_fake_health(listener, "0.0.1"));
+
+    let running = status(tmp.path(), port);
+
+    let extension_dir = tmp.path().join("state").join("extension");
+    assert_eq!(
+        running,
+        format!(
+            "Bridge running on 127.0.0.1:{port}, v0.0.1. No extension at {}",
+            extension_dir.display()
+        )
+    );
+}
+
+#[test]
+fn extension_path_prints_the_deployed_extension_folder() {
+    let tmp = tempfile::tempdir().unwrap();
+
+    let output = herdrop(tmp.path()).arg("extension-path").output().unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        Path::new(String::from_utf8_lossy(&output.stdout).trim()),
+        tmp.path().join("state").join("extension")
+    );
+}
+
+fn status(tmp: &Path, port: u16) -> String {
+    let output = herdrop(tmp)
         .arg("status")
         .arg("--port")
         .arg(port.to_string())
         .output()
         .unwrap();
-    assert!(running.status.success());
-    assert_eq!(
-        String::from_utf8_lossy(&running.stdout).trim(),
-        format!(
-            "Bridge running on 127.0.0.1:{port}, v{}",
-            env!("CARGO_PKG_VERSION")
-        )
-    );
+    assert!(output.status.success());
+    String::from_utf8_lossy(&output.stdout).trim().to_owned()
 }
 
 #[test]

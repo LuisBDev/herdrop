@@ -40,6 +40,7 @@ pub enum Command {
         #[arg(long)]
         config: Option<PathBuf>,
     },
+    ExtensionPath,
 }
 
 fn port_parser() -> clap::builder::RangedI64ValueParser<u16> {
@@ -47,6 +48,7 @@ fn port_parser() -> clap::builder::RangedI64ValueParser<u16> {
 }
 
 pub mod config;
+pub mod extension_path;
 pub mod paths;
 pub mod probe;
 pub mod prune;

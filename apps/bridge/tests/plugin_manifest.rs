@@ -81,6 +81,8 @@ fn manifest_actions_are_unique_and_match_their_platform() {
         "stop-windows",
         "status",
         "status-windows",
+        "extension-path",
+        "extension-path-windows",
         "prune",
         "prune-windows",
     ]
