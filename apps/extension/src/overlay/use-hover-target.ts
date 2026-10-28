@@ -1,4 +1,4 @@
-import { type Accessor, createEffect, createSignal, on, onCleanup } from 'solid-js';
+import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
 import type { FrameworkInfo } from '../capture/types';
 import type { OverlayState } from './overlay-state.ts';
 import type { PageContext } from './page-context.ts';
@@ -186,13 +186,11 @@ export function createHoverTarget(deps: HoverTargetDeps): HoverTarget {
     };
   };
 
+  const active = createMemo(() => state.mode() !== 'off');
   createEffect(
-    on(
-      () => state.mode() !== 'off',
-      (active) => {
-        if (active) onCleanup(attach());
-      },
-    ),
+    on(active, (active) => {
+      if (active) onCleanup(attach());
+    }),
   );
 
   return { hovered, up, down, stop };
