@@ -4,7 +4,11 @@ import { Button } from '../ui/button';
 import { cn } from '../ui/utils';
 import type { ActionId, FailureView } from './deliver-view.ts';
 
-export function FailureAlert(props: { view: FailureView; onAction: (id: ActionId) => void }) {
+export function FailureAlert(props: {
+  view: FailureView;
+  running: boolean;
+  onAction: (id: ActionId) => void;
+}) {
   const others = () => props.view.others.filter((a) => a.id !== 'discard');
   const discard = () => props.view.others.find((a) => a.id === 'discard');
 
@@ -28,7 +32,12 @@ export function FailureAlert(props: { view: FailureView; onAction: (id: ActionId
         <p class="m-0 text-sm font-semibold leading-[1.35]">{props.view.title}</p>
         <p class="m-0 mt-0.5 text-[13px] [text-wrap:pretty]">{props.view.body}</p>
         <div class="mt-2.5 flex flex-wrap gap-2">
-          <Button size="sm" variant="primary" onClick={() => props.onAction(props.view.primary.id)}>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={props.running && props.view.primary.id === 'retry'}
+            onClick={() => props.onAction(props.view.primary.id)}
+          >
             <Show when={props.view.primary.id === 'retry'}>
               <RotateCcw size={16} aria-hidden="true" />
             </Show>

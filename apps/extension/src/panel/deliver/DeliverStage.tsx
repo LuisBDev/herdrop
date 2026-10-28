@@ -174,7 +174,13 @@ export function DeliverStage() {
         {(d) => (
           <>
             <Show when={failed()}>
-              {(f) => <FailureAlert view={failureView(f())} onAction={onAction} />}
+              {(f) => (
+                <FailureAlert
+                  view={failureView(f())}
+                  running={controller.startedAt() !== null}
+                  onAction={onAction}
+                />
+              )}
             </Show>
             <Steps rows={stepsView(d())} sending={d().phase === 'sending'} />
             <Show when={d().dropId}>
