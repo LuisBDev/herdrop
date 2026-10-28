@@ -30,9 +30,14 @@ test('content_scripts_are_registered_for_localhost', async ({ sw }) => {
       const scripts = await worker.evaluate(() =>
         (globalThis as unknown as ExtensionGlobal).chrome.scripting.getRegisteredContentScripts(),
       );
-      return scripts.map((script) => script.id).sort();
+      return scripts
+        .map((script) => ({ id: script.id, local: script.matches?.includes('http://localhost/*') }))
+        .sort((a, b) => a.id.localeCompare(b.id));
     })
-    .toEqual(['herdrop-capture', 'herdrop-inspector']);
+    .toEqual([
+      { id: 'herdrop-capture', local: true },
+      { id: 'herdrop-inspector', local: true },
+    ]);
 });
 
 test('panel_lists_the_fake_agent', async ({ context, sw, extensionId }) => {

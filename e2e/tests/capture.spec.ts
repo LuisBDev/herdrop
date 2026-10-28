@@ -4,12 +4,12 @@ import type { BrowserContext, Page, Worker } from '@playwright/test';
 import { expect, test } from '../support/extension.ts';
 import { annotate, annotationItem, overlay, pickAgent } from '../support/flow.ts';
 import { focusPage, openPanel } from '../support/panel.ts';
+import { DROP_ID } from '../support/scenario.ts';
 
 const PLAIN_URL = 'http://localhost:4310/index.html';
 const REACT_URL = 'http://localhost:4311/';
 const ANGULAR_DEV_URL = 'http://localhost:4312/';
 const ANGULAR_PROD_URL = 'http://localhost:4313/';
-const DROP_ID = /^\d{8}-\d{6}-[a-z]{4}$/;
 
 type Session = { page: Page; panel: Page };
 

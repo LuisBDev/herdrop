@@ -106,3 +106,25 @@ test('note_box_hover_highlights_list_item', async ({ context, sw, extensionId })
   await expect(annotationItem(panel, 'One')).toHaveClass(LINKED);
   await page.keyboard.press('Escape');
 });
+
+test('minimized_edit_shows_unsaved_changes_and_keeps_priority', async ({
+  context,
+  sw,
+  extensionId,
+}) => {
+  const { page } = await setup(context, sw, extensionId);
+  await focusPage(sw, page);
+  await marker(page, 1).click();
+  const dialog = overlay(page).getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Priority' }).click();
+  await dialog.getByRole('radio', { name: /^blocking$/i }).check();
+  await dialog.getByRole('button', { name: 'Minimize note' }).click();
+  await expect(dialog).toBeHidden();
+  const pill = overlay(page).getByRole('button', { name: /^Restore annotation 1,/ });
+  await expect(pill).toContainText('Unsaved changes');
+  await pill.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('radio', { name: /^blocking$/i })).toBeChecked();
+  await page.keyboard.press('Escape');
+});

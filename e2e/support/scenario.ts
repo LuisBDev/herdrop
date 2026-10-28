@@ -1,6 +1,8 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+export const DROP_ID = /^\d{8}-\d{6}-[a-z]{4}$/;
+
 export type AgentInfoJson = {
   agent: string;
   agent_session: null;

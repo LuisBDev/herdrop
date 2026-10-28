@@ -20,6 +20,26 @@ test('herdr_missing_shows_local_notice', async ({ context, sw, extensionId, harn
   await expect(panel.getByText("Can't reach the Herdrop bridge")).toBeHidden();
 });
 
+test('bridge_down_shows_notice_and_retry_recovers', async ({
+  context,
+  sw,
+  extensionId,
+  harness,
+}) => {
+  await harness.bridge.stop();
+  const page = await context.newPage();
+  await page.goto(FIXTURE_URL);
+  await focusPage(sw, page);
+  const panel = await openPanel(context, extensionId);
+  await expect(panel.getByText("Can't reach the Herdrop bridge")).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Retry' })).toBeVisible();
+  await expect(panel.getByText('This PC')).toBeHidden();
+  await harness.restartBridge();
+  await panel.getByRole('button', { name: 'Retry' }).click();
+  await expect(panel.getByText('Fixture agent')).toBeVisible();
+  await expect(panel.getByText("Can't reach the Herdrop bridge")).toBeHidden();
+});
+
 test('remote_agents_use_the_profile_id_and_ssh_failure_fails_the_drop', async ({
   context,
   sw,

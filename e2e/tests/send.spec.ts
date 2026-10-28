@@ -4,7 +4,7 @@ import { expect, test } from '../support/extension.ts';
 import { annotate, overlay, pickAgent } from '../support/flow.ts';
 import { outsideCode } from '../support/markdown.ts';
 import { focusPage, openPanel } from '../support/panel.ts';
-import { promptCalls } from '../support/scenario.ts';
+import { DROP_ID, promptCalls } from '../support/scenario.ts';
 
 const FIXTURE_URL = 'http://localhost:4310/index.html';
 const STEPS = ['Check agent', 'Write bundle', 'Prompt agent', 'Wait for activity'];
@@ -35,7 +35,7 @@ test('send_writes_bundle_and_prompts_agent', async ({ context, sw, extensionId, 
   const drops = readdirSync(join(herdrop, 'drop'));
   expect(drops).toHaveLength(1);
   const id = drops[0] ?? '';
-  expect(id).toMatch(/^\d{8}-\d{6}-[a-z]{4}$/);
+  expect(id).toMatch(DROP_ID);
   const bundle = join(herdrop, 'drop', id);
   expect(readdirSync(bundle).sort()).toEqual(['A1.md', 'A2.md', 'README.md']);
 
