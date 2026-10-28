@@ -1,7 +1,7 @@
 mod process_info;
 
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Duration;
 
@@ -14,14 +14,14 @@ const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 const KILL_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Debug, thiserror::Error)]
-enum StopError {
+pub(super) enum StopError {
     #[error("cannot read pid file {}: {source}", path.display())]
     ReadPid { path: PathBuf, source: io::Error },
     #[error("cannot remove pid file {}: {source}", path.display())]
     RemovePid { path: PathBuf, source: io::Error },
 }
 
-enum Outcome {
+pub(super) enum Outcome {
     NotRunning,
     Stale,
     Stopped,
@@ -74,6 +74,13 @@ async fn stop() -> Result<Outcome, StopError> {
     let Some(record) = record else {
         return Ok(Outcome::NotRunning);
     };
+    stop_recorded(record, &pid_file).await
+}
+
+pub(super) async fn stop_recorded(
+    record: PidRecord,
+    pid_file: &Path,
+) -> Result<Outcome, StopError> {
     let outcome = if is_verified_bridge(record).await {
         kill(record.pid).await;
         if !wait_for_shutdown(record.port).await {
@@ -83,8 +90,8 @@ async fn stop() -> Result<Outcome, StopError> {
     } else {
         Outcome::Stale
     };
-    PidRecord::remove(&pid_file).map_err(|source| StopError::RemovePid {
-        path: pid_file,
+    PidRecord::remove(pid_file).map_err(|source| StopError::RemovePid {
+        path: pid_file.to_path_buf(),
         source,
     })?;
     Ok(outcome)

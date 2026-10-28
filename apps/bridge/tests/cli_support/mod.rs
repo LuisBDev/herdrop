@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::future::Future;
+use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -71,6 +72,45 @@ fn force_kill(pid: u32) {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
+}
+
+pub const FAKE_PORT_ENV: &str = "HERDROP_TEST_FAKE_PORT";
+pub const FAKE_VERSION_ENV: &str = "HERDROP_TEST_FAKE_VERSION";
+
+pub fn serve_fake_health(listener: TcpListener, version: &str) {
+    let body = format!(r#"{{"name":"herdrop","version":"{version}"}}"#);
+    for stream in listener.incoming() {
+        let Ok(mut stream) = stream else { continue };
+        let mut request = Vec::new();
+        let mut chunk = [0u8; 512];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            match stream.read(&mut chunk) {
+                Ok(0) | Err(_) => break,
+                Ok(read) => request.extend_from_slice(&chunk[..read]),
+            }
+        }
+        let _ = write!(
+            stream,
+            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+            body.len()
+        );
+    }
+}
+
+pub fn spawn_fake_bridge(tmp: &Path, helper_test: &str, port: u16, version: &str) -> Child {
+    let dir = tmp.join("fake");
+    std::fs::create_dir_all(&dir).unwrap();
+    let exe = dir.join(format!("herdrop{}", std::env::consts::EXE_SUFFIX));
+    std::fs::copy(std::env::current_exe().unwrap(), &exe).unwrap();
+    Command::new(exe)
+        .args([helper_test, "--exact", "--ignored", "--nocapture"])
+        .env(FAKE_PORT_ENV, port.to_string())
+        .env(FAKE_VERSION_ENV, version)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap()
 }
 
 pub async fn wait_until<F, Fut>(timeout: Duration, mut predicate: F) -> bool
