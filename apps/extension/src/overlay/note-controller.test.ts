@@ -47,7 +47,12 @@ const capture = {
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(
-  opts: { dispatch?: DispatchResult; pending?: PendingResult; start?: PageState } = {},
+  opts: {
+    dispatch?: DispatchResult;
+    pending?: PendingResult;
+    start?: PageState;
+    reject?: boolean;
+  } = {},
 ) {
   const events: DraftEvent[] = [];
   const sent: (PendingNoteInput | null)[] = [];
@@ -69,6 +74,7 @@ function setup(
       },
       setPendingNote: async (note) => {
         sent.push(note);
+        if (opts.reject) throw new Error('gone');
         return opts.pending ?? { ok: true };
       },
       locate: (selector) => (selector === '#one' ? el : null),
@@ -81,6 +87,25 @@ function setup(
 }
 
 describe('note controller', () => {
+  it('resume_resends_the_tuple_and_swallows_rejection', async () => {
+    const { controller, el, sent } = setup();
+    await controller.openNew(el);
+    await flush();
+    sent.length = 0;
+    controller.resume();
+    await flush();
+    expect(sent).toEqual([
+      { annotationId: null, number: 3, intent: 'change', state: 'empty', minimized: false },
+    ]);
+
+    const rejecting = setup({ reject: true });
+    await rejecting.controller.openNew(rejecting.el);
+    await flush();
+    rejecting.controller.resume();
+    await flush();
+    expect(rejecting.sent.length).toBeGreaterThan(1);
+  });
+
   it('save_outcomes', async () => {
     const cases: {
       name: string;

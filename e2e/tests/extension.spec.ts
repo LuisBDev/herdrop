@@ -31,12 +31,27 @@ test('content_scripts_are_registered_for_localhost', async ({ sw }) => {
         (globalThis as unknown as ExtensionGlobal).chrome.scripting.getRegisteredContentScripts(),
       );
       return scripts
-        .map((script) => ({ id: script.id, local: script.matches?.includes('http://localhost/*') }))
+        .map((script) => ({
+          id: script.id,
+          matches: [...(script.matches ?? [])].sort(),
+          world: script.world,
+          runAt: script.runAt,
+        }))
         .sort((a, b) => a.id.localeCompare(b.id));
     })
     .toEqual([
-      { id: 'herdrop-capture', local: true },
-      { id: 'herdrop-inspector', local: true },
+      {
+        id: 'herdrop-capture',
+        matches: ['http://localhost/*'],
+        world: 'ISOLATED',
+        runAt: 'document_idle',
+      },
+      {
+        id: 'herdrop-inspector',
+        matches: ['http://localhost/*'],
+        world: 'MAIN',
+        runAt: 'document_start',
+      },
     ]);
 });
 

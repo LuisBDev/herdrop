@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { Capture } from '../capture/types.ts';
 import { initialDraft } from '../draft/machine.ts';
@@ -8,6 +8,7 @@ import type { PageState, PendingNoteInput, UiState } from '../messaging/types.ts
 import { draftItem, targetTabItem, uiItem } from '../storage/items.ts';
 import { createBroadcast } from './broadcast.ts';
 import { createHandlers } from './handlers.ts';
+import { registerWorker } from './register.ts';
 import { onTabActivated } from './target-tab.ts';
 
 const destination: Destination = {
@@ -88,6 +89,17 @@ describe('service worker', () => {
     await handlers.tabRemoved(live.id ?? -1);
     await handlers.setPendingNote(note, owner);
     await handlers.dropOrphanedPending();
+    expect((await uiItem.getValue()).pending).toBeNull();
+  });
+
+  it('on_installed_clears_the_pending_note', async () => {
+    await draftItem.setValue(drafting);
+    await handlersWith().setPendingNote(note, { id: 3, url: 'http://localhost:4310/' });
+    vi.spyOn(fakeBrowser.commands.onCommand, 'addListener').mockImplementation(() => undefined);
+    vi.spyOn(fakeBrowser.sidePanel, 'setPanelBehavior').mockResolvedValue(undefined);
+    registerWorker();
+    await fakeBrowser.runtime.onInstalled.trigger({ reason: 'update' } as never);
+
     expect((await uiItem.getValue()).pending).toBeNull();
   });
 

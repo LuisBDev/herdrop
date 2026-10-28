@@ -26,7 +26,11 @@ export type ExtensionGlobal = {
       session: { get(key: string): Promise<Record<string, unknown>> };
     };
     sidePanel: { getPanelBehavior(): Promise<{ openPanelOnActionClick?: boolean }> };
-    scripting: { getRegisteredContentScripts(): Promise<{ id: string; matches?: string[] }[]> };
+    scripting: {
+      getRegisteredContentScripts(): Promise<
+        { id: string; matches?: string[]; world?: string; runAt?: string }[]
+      >;
+    };
   };
 };
 

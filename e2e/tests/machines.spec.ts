@@ -33,7 +33,7 @@ test('bridge_down_shows_notice_and_retry_recovers', async ({
   const panel = await openPanel(context, extensionId);
   await expect(panel.getByText("Can't reach the Herdrop bridge")).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Retry' })).toBeVisible();
-  await expect(panel.getByText('This PC')).toBeHidden();
+  await expect(panel.getByText('This PC')).toHaveCount(0);
   await harness.restartBridge();
   await panel.getByRole('button', { name: 'Retry' }).click();
   await expect(panel.getByText('Fixture agent')).toBeVisible();

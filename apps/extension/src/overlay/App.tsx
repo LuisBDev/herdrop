@@ -117,10 +117,8 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
   });
   props.ctx.addEventListener(window, 'pageshow', (event) => {
     if (!event.persisted) return;
-    void (async () => {
-      await refresh();
-      controller.resume();
-    })();
+    controller.resume();
+    void refresh();
   });
 
   return (
