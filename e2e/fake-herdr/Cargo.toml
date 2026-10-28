@@ -1,0 +1,26 @@
+[package]
+name = "fake-herdr"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "herdr"
+path = "src/main.rs"
+
+[[bin]]
+name = "ssh"
+path = "src/bin/ssh.rs"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
