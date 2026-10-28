@@ -38,8 +38,7 @@ it('built_manifest_matches_the_extension_contract', () => {
   ).filter((entry) =>
     entry.resources.some((resource) => /^content-scripts\/.+\.css$/.test(resource)),
   );
-  for (const entry of cssEntries) {
-    expect(entry.matches).toEqual(GRANTABLE);
-    expect(entry.use_dynamic_url).toBe(true);
-  }
+  expect(cssEntries).toEqual([
+    { resources: ['content-scripts/capture.css'], matches: GRANTABLE, use_dynamic_url: true },
+  ]);
 });

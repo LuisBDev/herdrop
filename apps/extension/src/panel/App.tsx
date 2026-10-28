@@ -12,7 +12,7 @@ export function App(props: { theme: ReturnType<typeof startPanelTheme> }) {
 
   return (
     <PanelContext.Provider value={state}>
-      <div class="flex h-full flex-col">
+      <div class="flex h-dvh flex-col">
         <Header theme={props.theme} />
         <AccessBanner />
         <ol aria-label="Drop progress" class="flex min-h-0 flex-1 list-none flex-col px-4 pt-1">

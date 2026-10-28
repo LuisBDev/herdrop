@@ -26,6 +26,7 @@ describe('createVisibilityReporter', () => {
 
   it('report_resends_last_set', () => {
     const { sent, reporter } = setup();
+    reporter.report();
     reporter.update(['a']);
     reporter.report();
     reporter.report();

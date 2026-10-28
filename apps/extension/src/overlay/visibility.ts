@@ -22,7 +22,7 @@ export function createVisibilityReporter(
       emit(last);
     },
     report() {
-      emit(last ?? []);
+      if (last !== null) emit(last);
     },
   };
 }

@@ -64,7 +64,7 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
       void grabElement(el, {
         capture,
         render: renderGrab,
-        copy: (text) => copyTextOnPage(text, container ?? props.host),
+        copy: (text) => (container ? copyTextOnPage(text, container) : Promise.resolve(false)),
         toast: toast.show,
         announce: state.announce,
         disarm: state.disarmGrab,
@@ -106,7 +106,10 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
   });
 
   const refresh = () => state.refresh().catch(() => undefined);
-  void refresh().then(() => controller.start());
+  void (async () => {
+    await refresh();
+    controller.start();
+  })();
   props.ctx.addEventListener(window, 'wxt:locationchange', () => void refresh());
   props.ctx.addEventListener(window, 'pagehide', () => {
     backgroundMessenger.sendMessage('setPendingNote', null).catch(() => undefined);
