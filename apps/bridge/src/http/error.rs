@@ -5,6 +5,9 @@ use axum::response::{IntoResponse, Response};
 
 use crate::protocol::{ApiError, ApiErrorBody};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Rejection(pub &'static str);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiFailure {
     pub status: StatusCode,
@@ -80,6 +83,10 @@ impl IntoResponse for ApiFailure {
                 message: self.message,
             },
         };
-        (self.status, Json(body)).into_response()
+        let mut response = (self.status, Json(body)).into_response();
+        if matches!(self.status, StatusCode::BAD_REQUEST | StatusCode::FORBIDDEN) {
+            response.extensions_mut().insert(Rejection(self.code));
+        }
+        response
     }
 }

@@ -7,6 +7,7 @@ use serde::Deserialize;
 use super::config::Config;
 use super::paths::home_dir;
 use super::status::notify;
+use super::stderr_log;
 use crate::adapters::fs_store::FsBundleStore;
 use crate::domain::folder::EffectiveFolder;
 use crate::domain::retention::RetentionPolicy;
@@ -42,6 +43,7 @@ async fn prune_folder(cwd: String, config: &Config) -> Result<usize, String> {
 }
 
 pub async fn run(config: Option<PathBuf>) -> ExitCode {
+    stderr_log::init();
     let config = match Config::from_env(config.as_deref()) {
         Ok(config) => config,
         Err(error) => {

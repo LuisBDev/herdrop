@@ -4,7 +4,7 @@ use axum::http::{HeaderMap, Method};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 
-use super::error::ApiFailure;
+use super::error::{ApiFailure, Rejection};
 
 const NO_ORIGIN: &str = "-";
 
@@ -45,20 +45,18 @@ pub async fn guard(
     request: Request,
     next: Next,
 ) -> Response {
-    match security.check(request.method(), request.headers()) {
+    let method = request.method().clone();
+    let origin = request.headers().get(ORIGIN).cloned();
+    let response = match security.check(&method, request.headers()) {
         Ok(()) => next.run(request).await,
-        Err(failure) => {
-            let origin = request.headers().get(ORIGIN).map_or_else(
-                || NO_ORIGIN.into(),
-                |value| String::from_utf8_lossy(value.as_bytes()),
-            );
-            tracing::info!(
-                code = %failure.code,
-                method = %request.method(),
-                origin = %origin,
-                "rejected"
-            );
-            failure.into_response()
-        }
+        Err(failure) => failure.into_response(),
+    };
+    if let Some(Rejection(code)) = response.extensions().get::<Rejection>() {
+        let origin = origin.as_ref().map_or_else(
+            || NO_ORIGIN.into(),
+            |value| String::from_utf8_lossy(value.as_bytes()),
+        );
+        tracing::info!(code = %code, method = %method, origin = %origin, "rejected");
     }
+    response
 }

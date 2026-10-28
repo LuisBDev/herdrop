@@ -49,4 +49,5 @@ pub mod prune;
 pub mod serve;
 pub mod start;
 pub mod status;
+mod stderr_log;
 pub mod stop;

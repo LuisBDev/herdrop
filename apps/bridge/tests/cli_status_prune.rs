@@ -23,6 +23,11 @@ async fn status_reports_running_and_not_running() {
         String::from_utf8_lossy(&idle.stdout).trim(),
         "Bridge not running"
     );
+    let warned = String::from_utf8_lossy(&idle.stderr);
+    assert!(
+        warned.contains("WARN") && warned.contains("herdr notification"),
+        "{warned}"
+    );
 
     let child = herdrop(tmp.path())
         .arg("serve")
@@ -43,7 +48,10 @@ async fn status_reports_running_and_not_running() {
     assert!(running.status.success());
     assert_eq!(
         String::from_utf8_lossy(&running.stdout).trim(),
-        format!("Bridge running on 127.0.0.1:{port}, v0.1.0")
+        format!(
+            "Bridge running on 127.0.0.1:{port}, v{}",
+            env!("CARGO_PKG_VERSION")
+        )
     );
 }
 

@@ -2,11 +2,12 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use super::config::Config;
-use super::probe;
+use super::{probe, stderr_log};
 
 pub(super) mod notify;
 
 pub async fn run(port: Option<u16>, config: Option<PathBuf>) -> ExitCode {
+    stderr_log::init();
     let port = match port {
         Some(port) => port,
         None => match Config::from_env(config.as_deref()) {

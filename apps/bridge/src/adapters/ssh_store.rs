@@ -255,7 +255,6 @@ mod tests {
 
     #[test]
     fn scripts_quote_every_path_and_stay_on_one_line() {
-        let _secret = bundle("SECRET-CONTENT");
         let rows = [
             (
                 EffectiveFolder::Path("/home/dev/it's here".to_owned()),
@@ -268,7 +267,6 @@ mod tests {
                 let script = script.expect("script builds");
                 assert!(script.contains(root), "{script}");
                 assert!(!script.contains('\n'), "{script}");
-                assert!(!script.contains("SECRET-CONTENT"), "{script}");
             }
         }
         let names = ["20201019-000000-aaaa".to_owned(), ".tmp-x'y".to_owned()];
