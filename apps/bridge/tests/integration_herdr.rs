@@ -355,7 +355,11 @@ async fn real_herdr_round_trip() {
         RetentionPolicy::from_days(7),
         Arc::new(Timestamp::now),
     ));
-    let app = router(bridge, SecurityConfig::new(PORT, &extension_id()));
+    let app = router(
+        bridge,
+        SecurityConfig::new(PORT, &extension_id()),
+        home.path().join("extension").into(),
+    );
 
     let first = create_drop(&app, &pane).await;
     let first_status = wait_final(&app, &first).await;

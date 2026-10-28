@@ -11,6 +11,7 @@ import dropStatusDelivered from '../fixtures/drop-status-delivered.json';
 import dropStatusFailed from '../fixtures/drop-status-failed.json';
 import dropStatusRunning from '../fixtures/drop-status-running.json';
 import health from '../fixtures/health.json';
+import healthLegacy from '../fixtures/health-legacy.json';
 import machines from '../fixtures/machines.json';
 import machinesHerdrMissing from '../fixtures/machines-herdr-missing.json';
 import {
@@ -60,4 +61,10 @@ test('bad_values_name_their_path', () => {
     expect(() => decode(value)).toThrow(DecodeError);
     expect(() => decode(value)).toThrow(path);
   }
+});
+
+test('health_without_an_extension_version_decodes_to_null', () => {
+  expect(decodeHealth(healthLegacy)).toEqual({ ...healthLegacy, extension_version: null });
+  expect(decodeHealth({ ...health, extension_version: null }).extension_version).toBeNull();
+  expect(() => decodeHealth({ ...health, extension_version: 5 })).toThrow('extension_version');
 });

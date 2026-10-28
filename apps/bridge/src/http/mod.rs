@@ -4,6 +4,7 @@ pub mod error;
 pub mod health;
 pub mod security;
 
+use std::path::Path;
 use std::sync::Arc;
 
 use axum::extract::DefaultBodyLimit;
@@ -19,9 +20,13 @@ const BODY_LIMIT: usize = 4 * 1024 * 1024;
 pub fn router<D: AgentDirectory, S: BundleStore, P: AgentPrompter>(
     bridge: Arc<Bridge<D, S, P>>,
     security: SecurityConfig,
+    extension_dir: Arc<Path>,
 ) -> Router {
     Router::new()
-        .route("/health", get(health::health))
+        .route(
+            "/health",
+            get(move || health::health(Arc::clone(&extension_dir))),
+        )
         .route("/machines", get(agents::machines::<D, S, P>))
         .route("/agents", get(agents::agents::<D, S, P>))
         .route("/drops", post(drops::create::<D, S, P>))

@@ -36,6 +36,10 @@ impl StatePaths {
         self.dir.join("herdrop.log")
     }
 
+    pub fn extension_dir(&self) -> PathBuf {
+        self.dir.join("extension")
+    }
+
     pub fn ensure(&self) -> io::Result<()> {
         std::fs::create_dir_all(&self.dir)
     }

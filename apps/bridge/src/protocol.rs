@@ -48,6 +48,8 @@ pub enum DropState {
 pub struct Health {
     pub name: String,
     pub version: String,
+    #[serde(default)]
+    pub extension_version: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

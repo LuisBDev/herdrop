@@ -92,9 +92,18 @@ const join = (path: string, key: string): string => (path === '' ? key : `${path
 const field = <T>(obj: Record<string, unknown>, path: string, key: string, read: Reader<T>): T =>
   read(obj[key], join(path, key));
 
+const absentOrNull =
+  <T>(read: Reader<T>): Reader<T | null> =>
+  (value, path) =>
+    value === undefined || value === null ? null : read(value, path);
+
 const readHealth: Reader<Health> = (value, path) => {
   const obj = record(value, path);
-  return { name: field(obj, path, 'name', str), version: field(obj, path, 'version', str) };
+  return {
+    name: field(obj, path, 'name', str),
+    version: field(obj, path, 'version', str),
+    extension_version: field(obj, path, 'extension_version', absentOrNull(str)),
+  };
 };
 
 const readMachine: Reader<MachineView> = (value, path) => {

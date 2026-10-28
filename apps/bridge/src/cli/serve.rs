@@ -15,7 +15,7 @@ use crate::adapters::machine_store::MachineBundleStore;
 use crate::adapters::ssh_store::SshBundleStore;
 use crate::app::bridge::Bridge;
 use crate::cli::config::{Config, ConfigError};
-use crate::cli::paths::{PathsError, home_dir};
+use crate::cli::paths::{PathsError, StatePaths, home_dir};
 use crate::domain::retention::RetentionPolicy;
 use crate::http::router;
 use crate::http::security::SecurityConfig;
@@ -99,7 +99,12 @@ async fn serve(port: Option<u16>, config: Option<&Path>, no_warm: bool) -> Resul
         let warming = Arc::clone(&bridge);
         tokio::spawn(async move { warming.warm().await });
     }
-    let app = router(bridge, SecurityConfig::new(port, &config.extension_id));
+    let state = StatePaths::from_env();
+    let app = router(
+        bridge,
+        SecurityConfig::new(port, &config.extension_id),
+        state.extension_dir().into(),
+    );
     tracing::info!(port, "listening");
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

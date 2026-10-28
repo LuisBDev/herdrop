@@ -47,6 +47,14 @@ fn every_fixture_round_trips_through_serde() {
 }
 
 #[test]
+fn health_from_a_bridge_without_extension_version_parses() {
+    let text = std::fs::read_to_string(format!("{FIXTURES}health-legacy.json")).unwrap();
+    let health: Health = serde_json::from_str(&text).unwrap();
+    assert_eq!(health.version, "0.1.0");
+    assert_eq!(health.extension_version, None);
+}
+
+#[test]
 fn create_drop_request_rejects_bad_bodies() {
     let table = [
         (

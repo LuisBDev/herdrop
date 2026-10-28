@@ -228,7 +228,7 @@ pub fn test_bridge(tmp: &Path) -> (Router, Handles) {
         clock.clock(),
     ));
     let security = SecurityConfig::new(PORT, &bundled_extension_id());
-    let app = router(Arc::clone(&bridge), security);
+    let app = router(Arc::clone(&bridge), security, tmp.join("extension").into());
     (
         app,
         Handles {
