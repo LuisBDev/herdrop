@@ -32,6 +32,8 @@ enum StartError {
     PidFile { path: PathBuf, source: io::Error },
     #[error("cannot remove pid file {}: {source}", path.display())]
     RemovePid { path: PathBuf, source: io::Error },
+    #[error("cannot stop the unanswered bridge: {0}")]
+    StopChild(io::Error),
 }
 
 enum Outcome {
@@ -91,6 +93,10 @@ async fn start(
     let mut child = detach::spawn_serve(&exe, &args, &state.dir).map_err(StartError::Spawn)?;
     let pid_file = state.pid_file();
     if !wait_for_health(port).await {
+        if matches!(child.try_wait(), Ok(None)) {
+            child.kill().map_err(StartError::StopChild)?;
+            child.wait().map_err(StartError::StopChild)?;
+        }
         PidRecord::remove(&pid_file).map_err(|source| StartError::RemovePid {
             path: pid_file,
             source,

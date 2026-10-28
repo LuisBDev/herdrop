@@ -23,7 +23,6 @@ const SSH_MISSING: &str = "ssh not found";
 const SSH_TIMED_OUT: &str = "ssh timed out";
 const UNEXPECTED_OUTPUT: &str = "unexpected ssh output";
 const LOCAL_UNSUPPORTED: &str = "local machine requires the fs store";
-const BUNDLE_EXISTS: &str = "bundle folder already exists";
 
 pub fn remote_root_expr(folder: &EffectiveFolder) -> Result<String, StoreError> {
     match folder {
@@ -47,7 +46,7 @@ pub fn write_script(folder: &EffectiveFolder, id: &DropId) -> Result<String, Sto
         "rm -rf \"$tmp\"".to_owned(),
         "mkdir -p \"$tmp\"".to_owned(),
         "tar -xf - -C \"$tmp\"".to_owned(),
-        format!("[ ! -e \"$dest\" ] || {{ printf '%s\\n' '{BUNDLE_EXISTS}' >&2; exit 1; }}"),
+        "rm -rf \"$dest\"".to_owned(),
         "mv \"$tmp\" \"$dest\"".to_owned(),
         "cd \"$dest\"".to_owned(),
         "pwd".to_owned(),
@@ -254,8 +253,7 @@ mod tests {
         let write = write_script(&EffectiveFolder::Home, &id).expect("script builds");
         assert!(
             write.contains("rm -rf \"$tmp\"; mkdir -p \"$tmp\"")
-                && write.contains("[ ! -e \"$dest\" ] || { printf")
-                && write.contains("exit 1; }; mv \"$tmp\" \"$dest\""),
+                && write.contains("tar -xf - -C \"$tmp\"; rm -rf \"$dest\"; mv \"$tmp\" \"$dest\""),
             "{write}"
         );
         for script in scripts(&EffectiveFolder::Path("/home/dev/a\nb".to_owned())) {

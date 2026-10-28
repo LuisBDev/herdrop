@@ -2,8 +2,10 @@ mod cli_support;
 
 use std::time::Duration;
 
+use clap::Parser;
+use clap::error::ErrorKind;
 use cli_support::{ChildGuard, free_port, herdrop, wait_until};
-use herdrop::cli::probe;
+use herdrop::cli::{Cli, probe};
 use herdrop::extension_id::bundled_extension_id;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -58,9 +60,9 @@ async fn serve_answers_health_and_logs_rejections_to_the_file() {
     assert_eq!(text.matches(&forbidden).count(), 1, "{text}");
     assert_eq!(text.matches("rejected").count(), 2, "{text}");
 
-    let port_zero = herdrop(tmp.path())
-        .args(["serve", "--port", "0", "--no-warm"])
-        .output()
-        .unwrap();
-    assert_eq!(port_zero.status.code(), Some(2));
+    let port_zero = Cli::try_parse_from(["herdrop", "serve", "--port", "0", "--no-warm"]);
+    assert!(matches!(
+        port_zero.map_err(|error| error.kind()),
+        Err(ErrorKind::ValueValidation)
+    ));
 }

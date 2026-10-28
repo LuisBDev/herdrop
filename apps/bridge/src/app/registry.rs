@@ -57,12 +57,14 @@ struct RegistryState {
 }
 
 impl RegistryState {
-    fn evict_oldest(&mut self) {
+    fn evict_oldest(&mut self, admitted: &DropId) {
         while self.order.len() > MAX_DROPS {
             let Some(index) = self.order.iter().position(|id| {
-                self.records
-                    .get(id)
-                    .is_none_or(|record| record.state != DropState::Running)
+                id != admitted
+                    && self
+                        .records
+                        .get(id)
+                        .is_none_or(|record| record.state != DropState::Running)
             }) else {
                 return;
             };
@@ -103,7 +105,7 @@ impl DropRegistry {
             .insert(record.request_id.clone(), id.clone());
         state.order.push_back(id.clone());
         state.records.insert(id.clone(), record);
-        state.evict_oldest();
+        state.evict_oldest(&id);
         Admission::Created(id)
     }
 
@@ -206,6 +208,28 @@ mod tests {
             registry
                 .get(&regenerated.parse().expect("valid id"))
                 .is_none()
+        );
+
+        let all_running = DropRegistry::default();
+        for index in 0..MAX_DROPS {
+            let id = format!("20261027-000002-{}", letters(index));
+            all_running.admit(
+                record(&id, &format!("r-{index}"), DropState::Running),
+                unused,
+            );
+        }
+        let late = "20261027-000003-aaaa";
+        all_running.admit(record(late, "r-late", DropState::Failed), unused);
+
+        assert!(all_running.get(&late.parse().expect("valid id")).is_some());
+        assert!(
+            all_running
+                .get(
+                    &format!("20261027-000002-{}", letters(0))
+                        .parse()
+                        .expect("valid id")
+                )
+                .is_some()
         );
     }
 }

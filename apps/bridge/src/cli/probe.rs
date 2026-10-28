@@ -36,3 +36,33 @@ fn is_healthy(response: &str) -> bool {
     });
     status_ok && body_ok
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_healthy_requires_ok_status_and_herdrop_health_body() {
+        let response = |status: &str, body: &str| {
+            format!("HTTP/1.1 {status}\r\ncontent-type: application/json\r\n\r\n{body}")
+        };
+        let rows = [
+            (
+                response("200 OK", r#"{"name":"herdrop","version":"0.1.0"}"#),
+                true,
+            ),
+            (
+                response("200 OK", r#"{"name":"other","version":"0.1.0"}"#),
+                false,
+            ),
+            (
+                response("403 Forbidden", r#"{"name":"herdrop","version":"0.1.0"}"#),
+                false,
+            ),
+            (response("200 OK", "herdrop"), false),
+        ];
+        for (raw, expected) in rows {
+            assert_eq!(is_healthy(&raw), expected, "{raw}");
+        }
+    }
+}

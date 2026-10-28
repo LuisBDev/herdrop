@@ -1,5 +1,6 @@
 mod cli_support;
 
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use cli_support::{ChildGuard, free_port, herdrop, wait_until};
@@ -93,4 +94,38 @@ fn prune_removes_old_bundles_in_focused_pane_folder() {
         String::from_utf8_lossy(&output.stdout).trim(),
         "Pane folder not found on this PC"
     );
+
+    std::fs::create_dir_all(&old).unwrap();
+    let elsewhere =
+        serde_json::json!({ "focused_pane_id": "w1:p1", "focused_pane_cwd": project }).to_string();
+    let output = herdrop(tmp.path())
+        .arg("prune")
+        .env("HERDR_BIN_PATH", fake_herdr(tmp.path()))
+        .env("HERDR_PLUGIN_CONTEXT_JSON", elsewhere)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "Pane folder not found on this PC"
+    );
+    assert!(old.exists());
+}
+
+const AGENT_LIST: &str = r#"{"result":{"agents":[{"pane_id":"w9:p9"}]}}"#;
+
+#[cfg(windows)]
+fn fake_herdr(dir: &Path) -> PathBuf {
+    let path = dir.join("herdr.cmd");
+    std::fs::write(&path, format!("@echo {AGENT_LIST}\r\n")).unwrap();
+    path
+}
+
+#[cfg(not(windows))]
+fn fake_herdr(dir: &Path) -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let path = dir.join("herdr");
+    std::fs::write(&path, format!("#!/bin/sh\nprintf '%s\\n' '{AGENT_LIST}'\n")).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    path
 }

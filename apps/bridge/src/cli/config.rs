@@ -19,6 +19,8 @@ pub enum ConfigError {
     },
     #[error("extension_id must be 32 letters from a to p")]
     InvalidExtensionId,
+    #[error("port must be 1-65535")]
+    InvalidPort,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,6 +75,9 @@ impl Config {
         {
             return Err(ConfigError::InvalidExtensionId);
         }
+        if file.port == Some(0) {
+            return Err(ConfigError::InvalidPort);
+        }
         Ok(Config {
             port: file.port.unwrap_or(defaults.port),
             retention_days: file.retention_days.unwrap_or(defaults.retention_days),
@@ -125,6 +130,12 @@ mod tests {
         assert!(matches!(
             Config::load(Some(&explicit), Some(dir.path())),
             Err(ConfigError::InvalidExtensionId)
+        ));
+
+        fs::write(&explicit, "port = 0").unwrap();
+        assert!(matches!(
+            Config::load(Some(&explicit), Some(dir.path())),
+            Err(ConfigError::InvalidPort)
         ));
     }
 }
