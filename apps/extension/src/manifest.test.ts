@@ -26,8 +26,8 @@ it('built_manifest_matches_the_extension_contract', () => {
   expect(manifest.key).toBe(key);
   const crateVersion = readFileSync(BRIDGE_CARGO, 'utf8').match(/^version = "(.+)"$/m)?.[1];
   expect(manifest.version_name ?? manifest.version).toBe(crateVersion);
-  expect(manifest.permissions).toEqual(
-    expect.arrayContaining(['storage', 'sidePanel', 'scripting', 'tabs']),
+  expect(new Set(manifest.permissions as string[])).toEqual(
+    new Set(['storage', 'sidePanel', 'scripting', 'tabs', 'alarms']),
   );
   expect(new Set(manifest.host_permissions as string[])).toEqual(new Set(['http://127.0.0.1/*']));
   expect(manifest.optional_host_permissions).toEqual(GRANTABLE);

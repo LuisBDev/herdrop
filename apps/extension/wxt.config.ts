@@ -30,7 +30,7 @@ export default defineConfig({
     version: versionWithoutPrerelease,
     version_name: version,
     key,
-    permissions: ['storage', 'sidePanel', 'scripting', 'tabs'],
+    permissions: ['storage', 'sidePanel', 'scripting', 'tabs', 'alarms'],
     host_permissions: ['http://127.0.0.1/*', ...(e2e ? ['http://localhost/*'] : [])],
     optional_host_permissions: ['http://*/*', 'https://*/*'],
     action: { default_title: 'Herdrop' },

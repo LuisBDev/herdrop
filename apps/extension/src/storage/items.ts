@@ -11,3 +11,7 @@ export const targetTabItem = storage.defineItem<TargetTab | null>('session:targe
   fallback: null,
 });
 export const settingsItem = storage.defineItem<Settings>('local:settings', { fallback: {} });
+export const reloadedForVersionItem = storage.defineItem<string | null>(
+  'local:reloadedForVersion',
+  { fallback: null },
+);
