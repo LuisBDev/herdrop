@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+      - feat/**
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
+          components: clippy, rustfmt
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/bridge/target
+            e2e/fake-herdr/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('apps/bridge/Cargo.lock', 'e2e/fake-herdr/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - run: bun install --frozen-lockfile
+      - run: cargo fmt --manifest-path e2e/fake-herdr/Cargo.toml --check
+      - run: cargo clippy --manifest-path e2e/fake-herdr/Cargo.toml --all-targets --locked -- -D warnings
+      - run: cargo test --manifest-path e2e/fake-herdr/Cargo.toml --locked
+      - run: cargo build --manifest-path e2e/fake-herdr/Cargo.toml --locked
+      - run: bun run check
+      - run: bun run fixtures:install
+      - run: bun x playwright install --with-deps chromium
+        working-directory: e2e
+      - run: bun run e2e
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: e2e/playwright-report
