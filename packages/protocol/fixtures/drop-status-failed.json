@@ -1,0 +1,9 @@
+{
+  "drop_id": "20261027-153012-kqzm",
+  "machine": "local",
+  "pane_id": "w1:p1",
+  "state": "failed",
+  "step": "write_bundle",
+  "bundle_dir": null,
+  "message": "io: permission denied"
+}

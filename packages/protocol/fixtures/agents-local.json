@@ -1,0 +1,26 @@
+{
+  "machine": "local",
+  "agents": [
+    {
+      "pane_id": "w1:p1",
+      "name": "Rediseño de la tabla de facturas",
+      "kind": "claude",
+      "status": "working",
+      "focused": true,
+      "folder": "D:\\Projects\\acme-billing\\web",
+      "folder_kind": "cwd"
+    },
+    {
+      "pane_id": "w2:p1",
+      "name": "opencode in pane w2:p1",
+      "kind": "opencode",
+      "status": "idle",
+      "focused": false,
+      "folder": "~/.herdrop",
+      "folder_kind": "home"
+    }
+  ],
+  "refreshed_at": "2026-10-27T15:30:12Z",
+  "refreshing": false,
+  "error": null
+}

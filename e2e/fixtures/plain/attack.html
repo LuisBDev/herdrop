@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Attack</title>
+  </head>
+  <body>
+    <p id="json">pending</p>
+    <p id="simple">pending</p>
+    <p id="read">pending</p>
+    <script>
+      const base = 'http://127.0.0.1:47899';
+      const body = JSON.stringify({
+        client_request_id: 'attack-1',
+        machine: 'local',
+        pane_id: 'w1:p1',
+        files: [
+          { name: 'README.md', content: '# Herdrop annotations' },
+          { name: 'A1.md', content: '# A1. fix' },
+        ],
+      });
+      const show = (id, text) => {
+        document.getElementById(id).textContent = text;
+      };
+      const failed = (id) => (error) => show(id, `error:${error.name}`);
+      const jsonRequest = fetch(`${base}/drops`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+      })
+        .then((response) => show('json', `status:${response.status}`))
+        .catch(failed('json'));
+      const simpleRequest = fetch(`${base}/drops`, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'content-type': 'text/plain' },
+        body,
+      })
+        .then(() => show('simple', 'sent'))
+        .catch(failed('simple'));
+      const readRequest = fetch(`${base}/health`)
+        .then((response) => show('read', `status:${response.status}`))
+        .catch(failed('read'));
+      Promise.all([jsonRequest, simpleRequest, readRequest]).then(() => {
+        document.body.dataset.done = '1';
+      });
+    </script>
+  </body>
+</html>

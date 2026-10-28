@@ -1,0 +1,29 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**",
+      "!!**/packages/protocol/src/generated",
+      "!!**/target",
+      "!!**/.output",
+      "!!**/.wxt",
+      "!!**/e2e/fixtures/angular",
+      "!!**/playwright-report",
+      "!!**/test-results",
+      "!!**/.agents",
+      "!!**/.claude",
+      "!!DESIGN.md"
+    ]
+  },
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineEnding": "lf", "lineWidth": 100 },
+  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "linter": { "rules": { "preset": "recommended" } },
+  "overrides": [
+    {
+      "includes": ["e2e/support/**"],
+      "linter": { "rules": { "correctness": { "noEmptyPattern": "off" } } }
+    }
+  ]
+}

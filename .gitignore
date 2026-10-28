@@ -4,3 +4,15 @@ dist/
 *.crx
 *.pem
 .env*
+.superpowers
+.atl
+.odd
+docs/superpowers
+target/
+.output/
+.wxt/
+test-results/
+playwright-report/
+e2e/.state/
+e2e/fixtures/angular/dist/
+e2e/fixtures/angular/.angular/

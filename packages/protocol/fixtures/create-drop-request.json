@@ -1,0 +1,9 @@
+{
+  "client_request_id": "3f2b8c1e-7a4d-4e6f-9b0a-5c1d2e3f4a5b",
+  "machine": "local",
+  "pane_id": "w1:p1",
+  "files": [
+    { "name": "README.md", "content": "# Herdrop drop\n" },
+    { "name": "A1.md", "content": "# Annotation 1\n" }
+  ]
+}

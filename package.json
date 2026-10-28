@@ -1,0 +1,27 @@
+{
+  "name": "herdrop",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "e2e*",
+    "e2e/fixtures/react*"
+  ],
+  "scripts": {
+    "lint": "biome check .",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "bridge:check": "cargo fmt --manifest-path apps/bridge/Cargo.toml --check && cargo clippy --manifest-path apps/bridge/Cargo.toml --all-targets --locked -- -D warnings && cargo test --manifest-path apps/bridge/Cargo.toml --locked",
+    "protocol:generate": "rm -rf packages/protocol/src/generated && cargo test --manifest-path apps/bridge/Cargo.toml --locked export_bindings",
+    "protocol:check": "bun run protocol:generate && git status --porcelain -- packages/protocol/src/generated | bun -e \"const s = await Bun.stdin.text(); if (s) { console.error(s); process.exit(1); }\"",
+    "check": "bun run lint && bun run typecheck && bun run test && bun run bridge:check && bun run protocol:check",
+    "fixtures:install": "bun install --cwd e2e/fixtures/angular --frozen-lockfile",
+    "e2e": "bun run fixtures:install && bun run --filter @herdrop/e2e e2e"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "typescript": "7.0.2"
+  }
+}
