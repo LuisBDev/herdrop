@@ -1,7 +1,9 @@
 import { type Accessor, createSignal, onCleanup } from 'solid-js';
+import type { PageContext } from './page-context.ts';
 import { clamp, type Position, type Size } from './placement.ts';
 
 export type DragOptions = {
+  ctx: PageContext;
   origin: () => Position;
   size: () => Size;
   onMove: (pos: Position) => void;
@@ -34,9 +36,9 @@ export function useDrag(opts: DragOptions): {
         clamp(next, opts.size(), { width: window.innerWidth, height: window.innerHeight }),
       );
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', end);
-    window.addEventListener('pointercancel', end);
+    opts.ctx.addEventListener(window, 'pointermove', move);
+    opts.ctx.addEventListener(window, 'pointerup', end);
+    opts.ctx.addEventListener(window, 'pointercancel', end);
     release = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);

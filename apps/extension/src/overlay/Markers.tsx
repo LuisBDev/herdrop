@@ -2,10 +2,15 @@ import { createEffect, createSignal, Index, on, onCleanup, onMount, Show } from 
 import { layoutMarkers, locate, type Marker } from './locate.ts';
 import type { NoteController } from './note-controller.ts';
 import { useOverlay } from './overlay-state.ts';
+import type { PageContext } from './page-context.ts';
 import { boxRect } from './selection.ts';
 import type { VisibilityReporter } from './visibility.ts';
 
-export function Markers(props: { controller: NoteController; reporter: VisibilityReporter }) {
+export function Markers(props: {
+  ctx: PageContext;
+  controller: NoteController;
+  reporter: VisibilityReporter;
+}) {
   const state = useOverlay();
   const [markers, setMarkers] = createSignal<Marker[]>([]);
   const [tick, setTick] = createSignal(0);
@@ -30,7 +35,7 @@ export function Markers(props: { controller: NoteController; reporter: Visibilit
 
   const schedule = () => {
     if (frame !== 0) return;
-    frame = requestAnimationFrame(() => {
+    frame = props.ctx.requestAnimationFrame(() => {
       frame = 0;
       recompute();
     });
@@ -39,16 +44,11 @@ export function Markers(props: { controller: NoteController; reporter: Visibilit
   createEffect(on([() => state.page().annotations, editingId], schedule));
 
   onMount(() => {
-    window.addEventListener('scroll', schedule, { capture: true, passive: true });
-    window.addEventListener('resize', schedule);
+    props.ctx.addEventListener(window, 'scroll', schedule, { capture: true, passive: true });
+    props.ctx.addEventListener(window, 'resize', schedule);
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { subtree: true, childList: true });
-    onCleanup(() => {
-      window.removeEventListener('scroll', schedule, { capture: true });
-      window.removeEventListener('resize', schedule);
-      observer.disconnect();
-      if (frame !== 0) cancelAnimationFrame(frame);
-    });
+    onCleanup(() => observer.disconnect());
   });
 
   const linkBox = () => {

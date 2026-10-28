@@ -26,7 +26,12 @@ export function DestinationStage() {
   async function change() {
     if (panel.draft().phase === 'sending') return;
     const result = await panel.dispatch({ type: 'destination.clear' });
-    if (result.ok) return;
+    if (result.ok) {
+      clearTimeout(timer);
+      setChangeNote(false);
+      return;
+    }
+    if (result.reason !== 'draft_not_empty' && result.reason !== 'wrong_phase') return;
     setChangeNote(true);
     clearTimeout(timer);
     timer = setTimeout(() => setChangeNote(false), NOTE_MS);

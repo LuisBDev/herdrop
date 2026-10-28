@@ -1,26 +1,10 @@
-import {
-  Activity,
-  CircleAlert,
-  CircleCheck,
-  CircleDot,
-  CircleQuestionMark,
-  Info,
-  Monitor,
-  Server,
-} from 'lucide-solid';
-import { type Component, Show } from 'solid-js';
+import { CircleAlert, Info, Monitor, Server } from 'lucide-solid';
+import { Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import type { Destination } from '../../draft/model.ts';
 import { cn } from '../ui/utils';
-import { kindLabel, type StatusIcon, statusView } from './agents-view.ts';
-
-const ICONS: Record<StatusIcon, Component<{ size?: number; 'aria-hidden'?: 'true' }>> = {
-  CircleDot,
-  Activity,
-  CircleAlert,
-  CircleCheck,
-  CircleQuestionMark,
-};
+import { kindLabel, statusView } from './agents-view.ts';
+import { STATUS_ICONS } from './status-icons.ts';
 
 function InlineNote(props: { icon: 'alert' | 'info'; text: string }) {
   return (
@@ -63,7 +47,7 @@ export function DestinationSummary(props: {
           <span
             class={cn('inline-flex items-center gap-1 whitespace-nowrap font-medium', status().cls)}
           >
-            <Dynamic component={ICONS[status().icon]} size={14} aria-hidden="true" />
+            <Dynamic component={STATUS_ICONS[status().icon]} size={14} aria-hidden="true" />
             {status().text}
           </span>
         </div>

@@ -2,6 +2,7 @@ import { CircleAlert, GripVertical, Minus, Plus, Trash, X } from 'lucide-solid';
 import { createUniqueId, For, onMount, Show } from 'solid-js';
 import type { Intent, Priority } from '../draft/model.ts';
 import { counterText, type NoteDraft } from './note-state.ts';
+import type { PageContext } from './page-context.ts';
 import { clamp, type NudgeKey, nudge, type Position, type Size } from './placement.ts';
 import { useDrag } from './use-drag.ts';
 
@@ -17,6 +18,7 @@ const PRIORITIES: Priority[] = ['blocking', 'important', 'suggestion'];
 const NUDGE_KEYS = new Set<string>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 
 export type NoteBoxProps = {
+  ctx: PageContext;
   note: NoteDraft;
   number: number;
   heading: { title: string; tag: string; detail: string };
@@ -46,7 +48,12 @@ export function NoteBox(props: NoteBoxProps) {
   };
   const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
 
-  const drag = useDrag({ origin: () => props.pos, size, onMove: (p) => props.onMove(p) });
+  const drag = useDrag({
+    ctx: props.ctx,
+    origin: () => props.pos,
+    size,
+    onMove: (p) => props.onMove(p),
+  });
 
   onMount(() => textarea?.focus({ preventScroll: true }));
 

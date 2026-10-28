@@ -1,5 +1,5 @@
 import { Maximize2 } from 'lucide-solid';
-import { onMount, Show } from 'solid-js';
+import { createEffect, on, onMount, Show } from 'solid-js';
 import type { Intent } from '../draft/model.ts';
 import { type PillState, pillText } from './note-state.ts';
 import type { Position } from './placement.ts';
@@ -23,11 +23,13 @@ export function NotePill(props: NotePillProps) {
     return text() === '' ? base : `${base}, ${text().toLowerCase()}`;
   };
 
-  onMount(() => {
-    if (!button) return;
-    props.measureRef?.(button);
-    button.focus({ preventScroll: true });
-  });
+  createEffect(
+    on(text, () => {
+      if (button) props.measureRef?.(button);
+    }),
+  );
+
+  onMount(() => button?.focus({ preventScroll: true }));
 
   return (
     <button

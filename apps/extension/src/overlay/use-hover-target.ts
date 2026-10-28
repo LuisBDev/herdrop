@@ -1,13 +1,13 @@
 import { type Accessor, createEffect, createSignal, on, onCleanup } from 'solid-js';
-import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import type { FrameworkInfo } from '../capture/types';
 import type { OverlayState } from './overlay-state.ts';
+import type { PageContext } from './page-context.ts';
 import { createChildStack, fromEvent, labelText } from './selection.ts';
 
 export type Hovered = { el: Element; rect: DOMRect; tag: string; component: string | null };
 
 export type HoverTargetDeps = {
-  ctx: Pick<ContentScriptContext, 'addEventListener' | 'requestAnimationFrame'>;
+  ctx: PageContext;
   host: Element;
   state: OverlayState;
   requestFramework: (el: Element) => Promise<FrameworkInfo | null>;

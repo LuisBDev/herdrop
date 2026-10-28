@@ -1,15 +1,16 @@
-import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
+import { createEffect, createSignal, onMount, Show } from 'solid-js';
 import { NoteBox } from './NoteBox.tsx';
 import { NotePill } from './NotePill.tsx';
 import type { NoteController } from './note-controller.ts';
 import { pillState } from './note-state.ts';
 import { useOverlay } from './overlay-state.ts';
+import type { PageContext } from './page-context.ts';
 import { clamp, type Size } from './placement.ts';
 import { boxRect } from './selection.ts';
 
 const PILL_SIZE: Size = { w: 160, h: 36 };
 
-export function NoteLayer(props: { controller: NoteController }) {
+export function NoteLayer(props: { ctx: PageContext; controller: NoteController }) {
   const state = useOverlay();
   const [rect, setRect] = createSignal<DOMRect | null>(null);
   const [pillSize, setPillSize] = createSignal<Size>(PILL_SIZE);
@@ -20,7 +21,7 @@ export function NoteLayer(props: { controller: NoteController }) {
 
   const schedule = () => {
     if (frame !== 0) return;
-    frame = requestAnimationFrame(() => {
+    frame = props.ctx.requestAnimationFrame(() => {
       frame = 0;
       read();
     });
@@ -32,13 +33,8 @@ export function NoteLayer(props: { controller: NoteController }) {
   });
 
   onMount(() => {
-    window.addEventListener('scroll', schedule, { capture: true, passive: true });
-    window.addEventListener('resize', schedule);
-    onCleanup(() => {
-      window.removeEventListener('scroll', schedule, { capture: true });
-      window.removeEventListener('resize', schedule);
-      if (frame !== 0) cancelAnimationFrame(frame);
-    });
+    props.ctx.addEventListener(window, 'scroll', schedule, { capture: true, passive: true });
+    props.ctx.addEventListener(window, 'resize', schedule);
   });
 
   const measure = (el: HTMLButtonElement) => {
@@ -107,6 +103,7 @@ export function NoteLayer(props: { controller: NoteController }) {
                   }
                 >
                   <NoteBox
+                    ctx={props.ctx}
                     note={session().note}
                     number={session().number}
                     heading={session().heading}

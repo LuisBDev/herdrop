@@ -117,8 +117,8 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
       <div class="hd" ref={container}>
         <Highlight hover={hover} />
         <SelectionBar hover={hover} />
-        <Markers controller={controller} reporter={reporter} />
-        <NoteLayer controller={controller} />
+        <Markers ctx={props.ctx} controller={controller} reporter={reporter} />
+        <NoteLayer ctx={props.ctx} controller={controller} />
         <PageToast toast={toast} />
         <p class="sr" role="status" aria-live="polite">
           {state.live()}

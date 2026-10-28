@@ -18,7 +18,7 @@ export function AnnotationsStage() {
 
   const sync = createHoverSync({
     sendToTab: panel.sendToTab,
-    targetTabId: () => panel.targetTab()?.id ?? null,
+    targetTab: panel.targetTab,
     onLinked: (handler) => panelMessenger.onMessage('annotationLinked', handler),
     onOffscreen: (handler) => panelMessenger.onMessage('visibilityChanged', handler),
   });

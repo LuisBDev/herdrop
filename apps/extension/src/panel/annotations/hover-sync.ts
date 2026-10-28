@@ -1,4 +1,6 @@
-import { type Accessor, createSignal } from 'solid-js';
+import { type Accessor, createEffect, createSignal, on } from 'solid-js';
+import { normalizeUrl } from '../../draft/url.ts';
+import type { TargetTab } from '../../messaging/types.ts';
 import type { PanelState } from '../state.ts';
 
 type Sender = { tab?: { id?: number } };
@@ -16,7 +18,7 @@ export type HoverSync = {
 
 export function createHoverSync(deps: {
   sendToTab: PanelState['sendToTab'];
-  targetTabId: Accessor<number | null>;
+  targetTab: Accessor<TargetTab | null>;
   onLinked: Registrar<{ id: string | null }>;
   onOffscreen: Registrar<{ url: string; offscreen: string[] }>;
 }): HoverSync {
@@ -25,9 +27,26 @@ export function createHoverSync(deps: {
   const [offscreen, setOffscreen] = createSignal<ReadonlySet<string>>(new Set());
 
   const fromTarget = (sender: Sender) => {
-    const target = deps.targetTabId();
-    return target !== null && sender.tab?.id === target;
+    const target = deps.targetTab();
+    return target !== null && sender.tab?.id === target.id;
   };
+
+  const onTargetPage = (url: string) => {
+    const target = deps.targetTab();
+    return target !== null && normalizeUrl(url) === normalizeUrl(target.url);
+  };
+
+  createEffect(
+    on(
+      () => deps.targetTab()?.id,
+      () => {
+        setLinkedId(null);
+        setLinkedFromPage(false);
+        setOffscreen(new Set<string>());
+      },
+      { defer: true },
+    ),
+  );
 
   const highlight = (id: string | null) => {
     setLinkedId(id);
@@ -41,7 +60,7 @@ export function createHoverSync(deps: {
     setLinkedFromPage(data.id !== null);
   });
   const stopOffscreen = deps.onOffscreen(({ data, sender }) => {
-    if (!fromTarget(sender)) return;
+    if (!fromTarget(sender) || !onTargetPage(data.url)) return;
     setOffscreen(new Set(data.offscreen));
   });
 
