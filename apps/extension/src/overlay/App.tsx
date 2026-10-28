@@ -3,6 +3,7 @@ import { onCleanup } from 'solid-js';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { captureTarget } from '../capture/target.ts';
 import { requestFramework } from '../inspector/channel.ts';
+import { copyText } from '../lib/clipboard.ts';
 import { backgroundMessenger } from '../messaging/background.ts';
 import { panelMessenger } from '../messaging/panel.ts';
 import { tabMessenger } from '../messaging/tab.ts';
@@ -18,7 +19,6 @@ import { NoteLayer } from './NoteLayer.tsx';
 import { createNoteController } from './note-controller.ts';
 import { createOverlayState, OverlayContext } from './overlay-state.ts';
 import { createPageToast, PageToast } from './PageToast.tsx';
-import { copyTextOnPage } from './page-clipboard.ts';
 import { SelectionBar } from './SelectionBar.tsx';
 import { selectedText } from './selection.ts';
 import { createHoverTarget } from './use-hover-target.ts';
@@ -64,7 +64,7 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
       void grabElement(el, {
         capture,
         render: renderGrab,
-        copy: (text) => (container ? copyTextOnPage(text, container) : Promise.resolve(false)),
+        copy: (text) => (container ? copyText(text, container) : Promise.resolve(false)),
         toast: toast.show,
         announce: state.announce,
         disarm: state.disarmGrab,
@@ -111,8 +111,16 @@ export function App(props: { ctx: ContentScriptContext; shadow: ShadowRoot; host
     controller.start();
   })();
   props.ctx.addEventListener(window, 'wxt:locationchange', () => void refresh());
-  props.ctx.addEventListener(window, 'pagehide', () => {
+  props.ctx.addEventListener(window, 'pagehide', (event) => {
+    if (event.persisted) return;
     backgroundMessenger.sendMessage('setPendingNote', null).catch(() => undefined);
+  });
+  props.ctx.addEventListener(window, 'pageshow', (event) => {
+    if (!event.persisted) return;
+    void (async () => {
+      await refresh();
+      controller.resume();
+    })();
   });
 
   return (

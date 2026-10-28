@@ -94,7 +94,7 @@ export function AnnotationsStage() {
       <div
         id={listId}
         hidden={!showList()}
-        class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto"
+        class="relative flex min-h-0 flex-1 flex-col gap-4 overflow-auto"
       >
         <Show when={showList()}>
           <UndoRow />

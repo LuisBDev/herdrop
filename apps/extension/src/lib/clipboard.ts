@@ -1,4 +1,7 @@
-type ClipboardEnv = { clipboard: Pick<Clipboard, 'writeText'> | undefined; doc: Document };
+export type ClipboardEnv = {
+  clipboard: Pick<Clipboard, 'writeText'> | undefined;
+  doc: Document;
+};
 
 function copyWithTextarea(text: string, container: HTMLElement, doc: Document): boolean {
   const previous = doc.activeElement instanceof HTMLElement ? doc.activeElement : null;
@@ -20,9 +23,9 @@ function copyWithTextarea(text: string, container: HTMLElement, doc: Document): 
   }
 }
 
-export async function copyTextOnPage(
+export async function copyText(
   text: string,
-  container: HTMLElement,
+  container: HTMLElement = document.body,
   env: ClipboardEnv = { clipboard: navigator.clipboard as Clipboard | undefined, doc: document },
 ): Promise<boolean> {
   if (env.clipboard) {

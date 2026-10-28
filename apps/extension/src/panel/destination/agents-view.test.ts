@@ -68,6 +68,8 @@ describe('agents view model', () => {
     expect(machineError(vps, null, fixture('agents-remote-error.json'))).toBe(
       "Can't reach vps over SSH",
     );
+    expect(machineError(local, null, null, true)).toBe('Herdr error');
+    expect(machineError(vps, null, resp(vps.key, []), true)).toBe("Can't reach vps over SSH");
   });
 
   it('preselect_keeps_current_else_first_focused_local', () => {

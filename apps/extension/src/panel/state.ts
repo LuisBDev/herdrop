@@ -99,11 +99,13 @@ export function createPanelState(deps: { feedback?: Feedback } = {}): PanelState
   const grab = createGrabTracker();
   const draft = storedSignal(draftItem);
   const ui = storedSignal(uiItem);
+  const [targetUrl, setTargetUrl] = createSignal<string | undefined>(undefined);
+  const site = createSiteAccess(targetUrl);
   const targetTab = storedSignal(targetTabItem, (next) => {
     grab.setTarget(next?.id ?? null);
+    setTargetUrl(next?.url);
     site.refresh();
   });
-  const site = createSiteAccess(() => targetTab()?.url);
   onCleanup(panelMessenger.onMessage('grabChanged', grab.onGrabChanged));
   const sendTab = tabMessenger.sendMessage as SendToTab;
 

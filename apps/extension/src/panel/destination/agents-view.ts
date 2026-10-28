@@ -38,13 +38,14 @@ export function machineError(
   m: MachineView,
   machinesError: string | null,
   resp: AgentsResponse | null,
+  failed = false,
 ): string | null {
   if (m.local) {
     const error = resp?.error ?? machinesError;
-    if (!error) return null;
-    return error === 'herdr not found' ? 'Herdr not found' : 'Herdr error';
+    if (error === 'herdr not found') return 'Herdr not found';
+    return error || failed ? 'Herdr error' : null;
   }
-  return resp?.error ? `Can't reach ${m.label} over SSH` : null;
+  return resp?.error || failed ? `Can't reach ${m.label} over SSH` : null;
 }
 
 export function statusView(status: AgentStatus): StatusView {

@@ -52,6 +52,7 @@ export type NoteController = {
   closeEditor(annotationId: string): void;
   hover(on: boolean): void;
   start(): void;
+  resume(): void;
 };
 
 type Open = Omit<NoteSession, 'number'>;
@@ -115,7 +116,12 @@ export function createNoteController(deps: NoteControllerDeps): NoteController {
   const send = async (t: PendingNoteInput | null) => {
     lastSent = t;
     const key = open()?.key;
-    const result = await deps.setPendingNote(t);
+    let result: PendingResult;
+    try {
+      result = await deps.setPendingNote(t);
+    } catch {
+      return;
+    }
     if (t === null || result.ok || result.reason !== 'pending_elsewhere') return;
     if (key !== undefined && current(key)) {
       close();
@@ -303,7 +309,10 @@ export function createNoteController(deps: NoteControllerDeps): NoteController {
       state.setLinked(active ? s.note.annotationId : null, true);
     },
     start() {
-      if (state.page().pending !== null) void deps.setPendingNote(null);
+      if (state.page().pending !== null) void send(null);
+    },
+    resume() {
+      void send(untrack(tuple));
     },
   };
 }

@@ -80,6 +80,15 @@ describe('service worker', () => {
     expect((await uiItem.getValue()).pending).toMatchObject({ tabId: 3 });
     await handlers.tabRemoved(3);
     expect((await uiItem.getValue()).pending).toBeNull();
+
+    const live = await fakeBrowser.tabs.create({ url: 'http://localhost:4310/' });
+    await handlers.setPendingNote(note, { id: live.id, url: live.url });
+    await handlers.dropOrphanedPending();
+    expect((await uiItem.getValue()).pending).toMatchObject({ tabId: live.id });
+    await handlers.tabRemoved(live.id ?? -1);
+    await handlers.setPendingNote(note, owner);
+    await handlers.dropOrphanedPending();
+    expect((await uiItem.getValue()).pending).toBeNull();
   });
 
   it('broadcast_sends_each_http_tab_its_own_state', async () => {

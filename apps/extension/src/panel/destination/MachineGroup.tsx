@@ -16,7 +16,8 @@ export function MachineGroup(props: {
   onRefresh(): void;
 }) {
   const machine = () => props.group.machine;
-  const error = () => machineError(machine(), props.machinesError, props.group.resp);
+  const error = () =>
+    machineError(machine(), props.machinesError, props.group.resp, props.group.failed);
   const agents = () => props.group.resp?.agents ?? [];
   const refreshLabel = () => `Refresh agents on ${machine().label}`;
   return (

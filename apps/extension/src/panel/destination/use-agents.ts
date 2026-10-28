@@ -11,7 +11,12 @@ type TimerId = ReturnType<typeof setTimeout>;
 
 export type BridgeState = 'loading' | 'ready' | 'unreachable';
 
-export type AgentGroup = { machine: MachineView; resp: AgentsResponse | null; polling: boolean };
+export type AgentGroup = {
+  machine: MachineView;
+  resp: AgentsResponse | null;
+  polling: boolean;
+  failed: boolean;
+};
 
 export type Agents = {
   bridge: Accessor<BridgeState>;
@@ -78,16 +83,17 @@ export function createAgents(deps: {
       resp = refresh ? await client.agents(key, { refresh: true }) : await client.agents(key);
     } catch (error) {
       if (gen !== generation || disposed) return;
-      if (error instanceof BridgeUnreachable) setBridge('unreachable');
+      const unreachable = error instanceof BridgeUnreachable;
+      if (unreachable) setBridge('unreachable');
       refreshingCounts.delete(key);
-      update(key, { polling: false });
+      update(key, { polling: false, failed: !unreachable });
       return;
     }
     if (gen !== generation || disposed) return;
     const count = resp.refreshing ? (refreshingCounts.get(key) ?? 0) + 1 : 0;
     refreshingCounts.set(key, count);
     const again = resp.refreshing && count < MAX_REFRESHING;
-    update(key, { resp, polling: again });
+    update(key, { resp, polling: again, failed: false });
     if (again) {
       pollTimers.set(
         key,
@@ -113,7 +119,7 @@ export function createAgents(deps: {
     }
     if (gen !== generation || disposed) return;
     setMachinesError(error);
-    setGroups(machines.map((machine) => ({ machine, resp: null, polling: false })));
+    setGroups(machines.map((machine) => ({ machine, resp: null, polling: false, failed: false })));
     setPick(preselect(groups(), pick()));
     setBridge('ready');
     await Promise.all(machines.map((m) => fetchAgents(m.key, false, gen)));

@@ -1,3 +1,4 @@
+import { browser } from 'wxt/browser';
 import type { DispatchResult, DraftEvent } from '../draft/model.ts';
 import type { DraftStore } from '../draft/store.ts';
 import type { PageState, PendingNoteInput, PendingResult } from '../messaging/types.ts';
@@ -17,6 +18,8 @@ export type WorkerHandlers = {
   armGrab(): Promise<void>;
   tabLoading(tabId: number): Promise<void>;
   tabRemoved(tabId: number): Promise<void>;
+  dropPending(): Promise<void>;
+  dropOrphanedPending(): Promise<void>;
   command(name: string): Promise<void>;
 };
 
@@ -48,6 +51,16 @@ export function createHandlers(
     armGrab,
     tabLoading: (tabId) => store.clearPendingForTab(tabId),
     tabRemoved: (tabId) => store.clearPendingForTab(tabId),
+    dropPending: async () => {
+      const { pending } = await uiItem.getValue();
+      if (pending !== null) await store.clearPendingForTab(pending.tabId);
+    },
+    dropOrphanedPending: async () => {
+      const { pending } = await uiItem.getValue();
+      if (pending === null) return;
+      const tab = await browser.tabs.get(pending.tabId).catch(() => undefined);
+      if (tab === undefined || tab.discarded) await store.clearPendingForTab(pending.tabId);
+    },
     command: async (name) => {
       if (name === 'toggle-select') await store.toggleSelect();
       else if (name === 'start-grab') await armGrab();

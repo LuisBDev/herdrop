@@ -26,7 +26,7 @@ export function Stage(props: {
       aria-current={props.marks.current ? 'step' : undefined}
       class={cn(
         'relative grid grid-cols-[24px_minmax(0,1fr)] gap-3 py-3',
-        props.grow && 'min-h-0 flex-1',
+        props.grow && 'min-h-0 flex-1 grid-rows-[minmax(0,1fr)]',
       )}
     >
       <Show when={props.number !== 3}>

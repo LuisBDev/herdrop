@@ -1,3 +1,4 @@
+import { COMMENT_MAX } from '../draft/machine.ts';
 import type { Intent, Priority, Rejection } from '../draft/model.ts';
 
 export type NoteOriginal = { intent: Intent; priority: Priority | null; comment: string };
@@ -16,7 +17,6 @@ export type NoteDraft = {
 
 export type PillState = 'empty' | 'unsaved' | 'unsaved_changes' | 'clean';
 
-const MAX_COMMENT = 2000;
 const COUNTER_FROM = 1600;
 const TOO_LONG = 'Keep it under 2,000 characters';
 
@@ -85,7 +85,7 @@ export function pillText(state: PillState): string {
 }
 
 export function validate(n: NoteDraft): string | null {
-  if (n.comment.length > MAX_COMMENT) return TOO_LONG;
+  if (n.comment.length > COMMENT_MAX) return TOO_LONG;
   if (n.comment.trim() === '') return REQUIRED_TEXT[n.intent];
   return null;
 }
@@ -106,7 +106,7 @@ export function rejectionText(reason: Rejection, intent: Intent): string {
 }
 
 export function counterText(comment: string): string {
-  return comment.length >= COUNTER_FROM ? `${comment.length} / ${MAX_COMMENT}` : '';
+  return comment.length >= COUNTER_FROM ? `${comment.length} / ${COMMENT_MAX}` : '';
 }
 
 export function noteHeading(a: {

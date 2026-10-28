@@ -51,11 +51,15 @@ export function registerWorker(): void {
   browser.tabs.onActivated.addListener(ignoringRejection(onTabActivated));
   browser.tabs.onUpdated.addListener(
     ignoringRejection(async (tabId, changeInfo, tab) => {
-      if (changeInfo.status === 'loading') await handlers.tabLoading(tabId);
+      if (changeInfo.status === 'loading' || changeInfo.discarded === true) {
+        await handlers.tabLoading(tabId);
+      }
       await onTabUpdated(tabId, changeInfo, tab);
     }),
   );
   browser.tabs.onRemoved.addListener(ignoringRejection((tabId) => handlers.tabRemoved(tabId)));
   browser.windows.onFocusChanged.addListener(ignoringRejection(onWindowFocusChanged));
   browser.commands.onCommand.addListener(ignoringRejection((name) => handlers.command(name)));
+  browser.runtime.onInstalled.addListener(ignoringRejection(() => handlers.dropPending()));
+  void ignoringRejection(() => handlers.dropOrphanedPending())();
 }

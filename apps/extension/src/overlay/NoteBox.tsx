@@ -59,6 +59,10 @@ export function NoteBox(props: NoteBoxProps) {
 
   const isEdit = () => props.note.mode === 'edit';
   const counter = () => counterText(props.note.comment);
+  const describedBy = () =>
+    [props.note.error ? errorId : null, counter() !== '' ? counterId : null]
+      .filter((part) => part !== null)
+      .join(' ') || undefined;
 
   const onRootKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -199,7 +203,7 @@ export function NoteBox(props: NoteBoxProps) {
             rows={4}
             value={props.note.comment}
             aria-invalid={props.note.error !== null ? 'true' : undefined}
-            aria-describedby={`${errorId} ${counterId}`}
+            aria-describedby={describedBy()}
             onInput={(e) => props.onChange({ comment: e.currentTarget.value, error: null })}
           />
           <Show when={props.note.error !== null || counter() !== ''}>

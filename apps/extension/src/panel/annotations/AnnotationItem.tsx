@@ -1,7 +1,7 @@
 import { Check, Copy, ExternalLink, EyeOff, Pencil, Trash } from 'lucide-solid';
 import { createEffect, createSignal, onCleanup, Show } from 'solid-js';
+import { copyText } from '../../lib/clipboard.ts';
 import { renderClipboardOne } from '../../render/clipboard.ts';
-import { copyText } from '../clipboard.ts';
 import { usePanel } from '../state.ts';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
