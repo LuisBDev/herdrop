@@ -23,6 +23,7 @@ const SSH_MISSING: &str = "ssh not found";
 const SSH_TIMED_OUT: &str = "ssh timed out";
 const UNEXPECTED_OUTPUT: &str = "unexpected ssh output";
 const LOCAL_UNSUPPORTED: &str = "local machine requires the fs store";
+const BUNDLE_EXISTS: &str = "bundle folder already exists";
 
 pub fn remote_root_expr(folder: &EffectiveFolder) -> Result<String, StoreError> {
     match folder {
@@ -42,10 +43,13 @@ pub fn write_script(folder: &EffectiveFolder, id: &DropId) -> Result<String, Sto
         "mkdir -p \"$root/drop\"".to_owned(),
         "[ -f \"$root/.gitignore\" ] || printf '*\\n' > \"$root/.gitignore\"".to_owned(),
         format!("tmp=\"$root/drop/.tmp-{id}\""),
+        format!("dest=\"$root/drop/{id}\""),
+        "rm -rf \"$tmp\"".to_owned(),
         "mkdir -p \"$tmp\"".to_owned(),
         "tar -xf - -C \"$tmp\"".to_owned(),
-        format!("mv \"$tmp\" \"$root/drop/{id}\""),
-        format!("cd \"$root/drop/{id}\""),
+        format!("[ ! -e \"$dest\" ] || {{ printf '%s\\n' '{BUNDLE_EXISTS}' >&2; exit 1; }}"),
+        "mv \"$tmp\" \"$dest\"".to_owned(),
+        "cd \"$dest\"".to_owned(),
         "pwd".to_owned(),
         format!("printf '%s\\n' '{SEPARATOR}'"),
         "ls -1A \"$root/drop\"".to_owned(),
@@ -57,11 +61,6 @@ pub fn remove_script(folder: &EffectiveFolder, names: &[String]) -> Result<Strin
     let root = remote_root_expr(folder)?;
     let quoted: Vec<String> = names.iter().map(|name| sh_quote(name)).collect();
     Ok(format!("cd {root}/drop && rm -rf -- {}", quoted.join(" ")))
-}
-
-pub fn list_script(folder: &EffectiveFolder) -> Result<String, StoreError> {
-    let root = remote_root_expr(folder)?;
-    Ok(format!("cd {root}/drop 2>/dev/null && ls -1A || true"))
 }
 
 pub fn bundle_tar(bundle: &Bundle) -> Result<Vec<u8>, StoreError> {
@@ -205,26 +204,6 @@ impl BundleStore for SshBundleStore {
         }
         Ok(output.bundle)
     }
-
-    async fn prune(
-        &self,
-        location: &BundleLocation,
-        now: Timestamp,
-        policy: &RetentionPolicy,
-    ) -> Result<usize, StoreError> {
-        let target = remote_target(location)?;
-        let stdout = self
-            .run(target, &list_script(&location.folder)?, None)
-            .await?;
-        let names = entry_names(stdout.lines());
-        let keep = DropId::generate(now, &mut fastrand::Rng::with_seed(0));
-        let doomed = prune_candidates(names.iter().map(String::as_str), &keep, now, policy);
-        if !doomed.is_empty() {
-            self.run(target, &remove_script(&location.folder, &doomed)?, None)
-                .await?;
-        }
-        Ok(doomed.len())
-    }
 }
 
 #[cfg(test)]
@@ -246,11 +225,7 @@ mod tests {
     fn scripts(folder: &EffectiveFolder) -> Vec<Result<String, StoreError>> {
         let id: DropId = "20261027-153012-kqzm".parse().expect("valid id");
         let names = ["20201019-000000-aaaa".to_owned(), ".tmp-x'y".to_owned()];
-        vec![
-            write_script(folder, &id),
-            remove_script(folder, &names),
-            list_script(folder),
-        ]
+        vec![write_script(folder, &id), remove_script(folder, &names)]
     }
 
     #[test]
@@ -274,6 +249,14 @@ mod tests {
         assert!(
             remove.ends_with("rm -rf -- '20201019-000000-aaaa' '.tmp-x'\\''y'"),
             "{remove}"
+        );
+        let id: DropId = "20261027-153012-kqzm".parse().expect("valid id");
+        let write = write_script(&EffectiveFolder::Home, &id).expect("script builds");
+        assert!(
+            write.contains("rm -rf \"$tmp\"; mkdir -p \"$tmp\"")
+                && write.contains("[ ! -e \"$dest\" ] || { printf")
+                && write.contains("exit 1; }; mv \"$tmp\" \"$dest\""),
+            "{write}"
         );
         for script in scripts(&EffectiveFolder::Path("/home/dev/a\nb".to_owned())) {
             assert!(

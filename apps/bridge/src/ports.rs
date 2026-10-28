@@ -106,12 +106,6 @@ pub trait BundleStore: Send + Sync + 'static {
         now: Timestamp,
         policy: &RetentionPolicy,
     ) -> impl Future<Output = Result<WrittenBundle, StoreError>> + Send;
-    fn prune(
-        &self,
-        location: &BundleLocation,
-        now: Timestamp,
-        policy: &RetentionPolicy,
-    ) -> impl Future<Output = Result<usize, StoreError>> + Send;
 }
 
 pub trait AgentPrompter: Send + Sync + 'static {

@@ -4,8 +4,10 @@ use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
+use crate::protocol::Health;
+
 const TIMEOUT: Duration = Duration::from_secs(2);
-const BODY_MARKER: &str = "\"name\":\"herdrop\"";
+const HEALTH_NAME: &str = "herdrop";
 
 pub async fn health(port: u16) -> bool {
     match tokio::time::timeout(TIMEOUT, fetch(port)).await {
@@ -29,8 +31,8 @@ fn is_healthy(response: &str) -> bool {
         .lines()
         .next()
         .is_some_and(|line| line.contains(" 200 "));
-    let body_ok = response
-        .split_once("\r\n\r\n")
-        .is_some_and(|(_, body)| body.contains(BODY_MARKER));
+    let body_ok = response.split_once("\r\n\r\n").is_some_and(|(_, body)| {
+        serde_json::from_str::<Health>(body).is_ok_and(|health| health.name == HEALTH_NAME)
+    });
     status_ok && body_ok
 }

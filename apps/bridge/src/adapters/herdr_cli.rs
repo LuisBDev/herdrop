@@ -13,8 +13,10 @@ use crate::process::background;
 
 const BIN_ENV: &str = "HERDR_BIN_PATH";
 const DEFAULT_BIN: &str = "herdr";
-const RUN_TIMEOUT: Duration = Duration::from_secs(60);
-const PROMPT_TIMEOUT_MS: &str = "45000";
+const LIST_RUN_TIMEOUT: Duration = Duration::from_secs(60);
+const PROMPT_WAIT_SECS: u64 = 45;
+const SSH_STARTUP_SECS: u64 = 30;
+const PROMPT_RUN_TIMEOUT: Duration = Duration::from_secs(PROMPT_WAIT_SECS + SSH_STARTUP_SECS);
 const TIMED_OUT: &str = "herdr timed out";
 const USAGE_EXIT: i32 = 2;
 const FAILURE_EXIT: i32 = 1;
@@ -45,13 +47,13 @@ impl HerdrCli {
         self
     }
 
-    async fn run(&self, args: Vec<String>) -> Result<Output, RunError> {
+    async fn run(&self, args: Vec<String>, timeout: Duration) -> Result<Output, RunError> {
         let mut command = background(&self.bin);
         if let Some(session) = &self.session {
             command.arg("--session").arg(session);
         }
         command.args(args);
-        match tokio::time::timeout(RUN_TIMEOUT, command.output()).await {
+        match tokio::time::timeout(timeout, command.output()).await {
             Err(_) => Err(RunError::TimedOut),
             Ok(Err(error)) if error.kind() == ErrorKind::NotFound => Err(RunError::Missing),
             Ok(Err(error)) => Err(RunError::Io(error)),
@@ -80,8 +82,8 @@ pub(crate) fn prompt_args(machine: &Machine, pane: &PaneId, line: &str) -> Vec<S
         "--until",
         "blocked",
         "--timeout",
-        PROMPT_TIMEOUT_MS,
     ]));
+    args.push((PROMPT_WAIT_SECS * 1000).to_string());
     args
 }
 
@@ -145,20 +147,16 @@ pub(crate) fn prompt_outcome(
     }
 }
 
-fn run_directory_error(error: RunError) -> DirectoryError {
+fn run_error<E>(error: RunError, missing: E, command: impl FnOnce(String) -> E) -> E {
     match error {
-        RunError::Missing => DirectoryError::HerdrMissing,
-        RunError::TimedOut => DirectoryError::Command(TIMED_OUT.to_owned()),
-        RunError::Io(error) => DirectoryError::Command(format!("failed to run herdr: {error}")),
+        RunError::Missing => missing,
+        RunError::TimedOut => command(TIMED_OUT.to_owned()),
+        RunError::Io(error) => command(format!("failed to run herdr: {error}")),
     }
 }
 
-fn run_prompt_error(error: RunError) -> PromptError {
-    match error {
-        RunError::Missing => PromptError::HerdrMissing,
-        RunError::TimedOut => PromptError::Command(TIMED_OUT.to_owned()),
-        RunError::Io(error) => PromptError::Command(format!("failed to run herdr: {error}")),
-    }
+fn run_directory_error(error: RunError) -> DirectoryError {
+    run_error(error, DirectoryError::HerdrMissing, DirectoryError::Command)
 }
 
 fn checked_stdout(output: &Output, machine: &Machine) -> Result<String, DirectoryError> {
@@ -176,7 +174,7 @@ fn checked_stdout(output: &Output, machine: &Machine) -> Result<String, Director
 impl AgentDirectory for HerdrCli {
     async fn machines(&self) -> Result<Vec<MachineProfile>, DirectoryError> {
         let output = self
-            .run(machine_list_args())
+            .run(machine_list_args(), LIST_RUN_TIMEOUT)
             .await
             .map_err(run_directory_error)?;
         parse_machine_list(&checked_stdout(&output, &Machine::Local)?)
@@ -184,7 +182,7 @@ impl AgentDirectory for HerdrCli {
 
     async fn agents(&self, machine: &Machine) -> Result<Vec<AgentRecord>, DirectoryError> {
         let output = self
-            .run(agent_list_args(machine))
+            .run(agent_list_args(machine), LIST_RUN_TIMEOUT)
             .await
             .map_err(run_directory_error)?;
         parse_agent_list(&checked_stdout(&output, machine)?)
@@ -199,9 +197,9 @@ impl AgentPrompter for HerdrCli {
         line: &str,
     ) -> Result<PromptOutcome, PromptError> {
         let output = self
-            .run(prompt_args(machine, pane, line))
+            .run(prompt_args(machine, pane, line), PROMPT_RUN_TIMEOUT)
             .await
-            .map_err(run_prompt_error)?;
+            .map_err(|error| run_error(error, PromptError::HerdrMissing, PromptError::Command))?;
         let outcome = prompt_outcome(
             output.status.code(),
             &String::from_utf8_lossy(&output.stderr),

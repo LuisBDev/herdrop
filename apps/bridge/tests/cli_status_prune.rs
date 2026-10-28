@@ -80,4 +80,17 @@ fn prune_removes_old_bundles_in_focused_pane_folder() {
     );
     assert!(!old.exists());
     assert!(fresh.exists());
+
+    let remote =
+        serde_json::json!({ "focused_pane_cwd": tmp.path().join("remote-only") }).to_string();
+    let output = herdrop(tmp.path())
+        .arg("prune")
+        .env("HERDR_PLUGIN_CONTEXT_JSON", remote)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "Pane folder not found on this PC"
+    );
 }

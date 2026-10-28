@@ -59,10 +59,16 @@ struct RegistryState {
 impl RegistryState {
     fn evict_oldest(&mut self) {
         while self.order.len() > MAX_DROPS {
-            let Some(oldest) = self.order.pop_front() else {
+            let Some(index) = self.order.iter().position(|id| {
+                self.records
+                    .get(id)
+                    .is_none_or(|record| record.state != DropState::Running)
+            }) else {
                 return;
             };
-            if let Some(record) = self.records.remove(&oldest) {
+            if let Some(oldest) = self.order.remove(index)
+                && let Some(record) = self.records.remove(&oldest)
+            {
                 self.by_request.remove(&record.request_id);
             }
         }
@@ -83,10 +89,13 @@ impl DropRegistry {
         self.lock().by_request.get(request_id).cloned()
     }
 
-    pub fn admit(&self, record: DropRecord) -> Admission {
+    pub fn admit(&self, mut record: DropRecord, mut fresh_id: impl FnMut() -> DropId) -> Admission {
         let mut state = self.lock();
         if let Some(existing) = state.by_request.get(&record.request_id) {
             return Admission::Existing(existing.clone());
+        }
+        while state.records.contains_key(&record.id) {
+            record.id = fresh_id();
         }
         let id = record.id.clone();
         state
@@ -123,5 +132,80 @@ impl DropRegistry {
                 Ok(())
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::bundle::BundleFileName;
+
+    fn record(id: &str, request: &str, state: DropState) -> DropRecord {
+        let name = |raw: &str| raw.parse::<BundleFileName>().expect("valid name");
+        let files = vec![
+            (name("README.md"), String::new()),
+            (name("A1.md"), String::new()),
+        ];
+        DropRecord {
+            id: id.parse().expect("valid id"),
+            request_id: request.parse().expect("valid request id"),
+            machine: Machine::Local,
+            pane: "w1:p1".parse().expect("valid pane"),
+            state,
+            step: DropStep::CheckAgent,
+            written: None,
+            message: None,
+            bundle: Arc::new(Bundle::new(files).expect("valid bundle")),
+        }
+    }
+
+    fn letters(index: usize) -> String {
+        const ALPHABET: &[u8; 26] = b"abcdefghijklmnopqrstuvwxyz";
+        (0..4u32)
+            .rev()
+            .map(|place| char::from(ALPHABET[index / 26usize.pow(place) % 26]))
+            .collect()
+    }
+
+    fn unused() -> DropId {
+        unreachable!("the id is free")
+    }
+
+    #[test]
+    fn admit_regenerates_taken_ids_and_eviction_keeps_running_drops() {
+        let registry = DropRegistry::default();
+        let running = "20261027-000000-aaaa";
+        registry.admit(record(running, "r-running", DropState::Running), unused);
+
+        let regenerated = "20261027-000000-bbbb";
+        let admission = registry.admit(record(running, "r-collides", DropState::Failed), || {
+            regenerated.parse().expect("valid id")
+        });
+
+        assert_eq!(
+            admission,
+            Admission::Created(regenerated.parse().expect("valid id"))
+        );
+        assert_eq!(
+            registry
+                .get(&running.parse().expect("valid id"))
+                .map(|stored| stored.state),
+            Some(DropState::Running)
+        );
+
+        for index in 0..MAX_DROPS {
+            let id = format!("20261027-000001-{}", letters(index));
+            registry.admit(
+                record(&id, &format!("r-{index}"), DropState::Delivered),
+                unused,
+            );
+        }
+
+        assert!(registry.get(&running.parse().expect("valid id")).is_some());
+        assert!(
+            registry
+                .get(&regenerated.parse().expect("valid id"))
+                .is_none()
+        );
     }
 }

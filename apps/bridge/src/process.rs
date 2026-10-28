@@ -3,11 +3,6 @@ use std::process::Stdio;
 
 use tokio::process::Command;
 
-#[cfg(windows)]
-pub(crate) const NO_WINDOW: u32 = windows_sys::Win32::System::Threading::CREATE_NO_WINDOW;
-#[cfg(not(windows))]
-pub(crate) const NO_WINDOW: u32 = 0;
-
 pub(crate) fn background(program: impl AsRef<OsStr>) -> Command {
     let mut command = Command::new(program);
     command
@@ -16,6 +11,6 @@ pub(crate) fn background(program: impl AsRef<OsStr>) -> Command {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     #[cfg(windows)]
-    command.creation_flags(NO_WINDOW);
+    command.creation_flags(windows_sys::Win32::System::Threading::CREATE_NO_WINDOW);
     command
 }

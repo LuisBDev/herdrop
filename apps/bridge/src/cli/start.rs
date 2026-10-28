@@ -30,6 +30,8 @@ enum StartError {
     Spawn(io::Error),
     #[error("cannot write pid file {}: {source}", path.display())]
     PidFile { path: PathBuf, source: io::Error },
+    #[error("cannot remove pid file {}: {source}", path.display())]
+    RemovePid { path: PathBuf, source: io::Error },
 }
 
 enum Outcome {
@@ -86,19 +88,28 @@ async fn start(
         .transpose()
         .map_err(StartError::ConfigPath)?;
     let args = serve_args(port, &log, config_path.as_deref(), no_warm);
-    let pid = detach::spawn_serve(&exe, &args, &state.dir).map_err(StartError::Spawn)?;
+    let mut child = detach::spawn_serve(&exe, &args, &state.dir).map_err(StartError::Spawn)?;
     let pid_file = state.pid_file();
-    PidRecord { pid, port }
-        .write(&pid_file)
-        .map_err(|source| StartError::PidFile {
+    if !wait_for_health(port).await {
+        PidRecord::remove(&pid_file).map_err(|source| StartError::RemovePid {
             path: pid_file,
             source,
         })?;
-    if wait_for_health(port).await {
-        Ok(Outcome::Running(port))
-    } else {
-        Ok(Outcome::NoAnswer { port, log })
+        return Ok(Outcome::NoAnswer { port, log });
     }
+    if matches!(child.try_wait(), Ok(Some(_))) {
+        return Ok(Outcome::AlreadyRunning(port));
+    }
+    PidRecord {
+        pid: child.id(),
+        port,
+    }
+    .write(&pid_file)
+    .map_err(|source| StartError::PidFile {
+        path: pid_file,
+        source,
+    })?;
+    Ok(Outcome::Running(port))
 }
 
 fn serve_args(port: u16, log: &Path, config: Option<&Path>, no_warm: bool) -> Vec<OsString> {

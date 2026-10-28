@@ -43,6 +43,26 @@ impl Entry {
             .is_none_or(|checked| now.duration_since(checked) >= AGENTS_FRESH_FOR)
     }
 
+    fn record(
+        &mut self,
+        key: &MachineKey,
+        result: Result<Vec<AgentRecord>, DirectoryError>,
+        now: Timestamp,
+    ) {
+        match result {
+            Ok(agents) => {
+                self.agents = agents;
+                self.refreshed_at = Some(now);
+                self.error = None;
+            }
+            Err(error) => {
+                tracing::warn!(machine = %key, error = %error, "agent refresh failed");
+                self.error = Some(error.to_string());
+            }
+        }
+        self.checked_at = Some(now);
+    }
+
     fn response(&self, key: &MachineKey) -> AgentsResponse {
         let (focused, rest): (Vec<_>, Vec<_>) = self.agents.iter().partition(|agent| agent.focused);
         AgentsResponse {
@@ -133,7 +153,7 @@ impl AgentCatalog {
         state.entries.entry(key.clone()).or_default().response(key)
     }
 
-    pub(crate) fn finish(
+    fn finish(
         &self,
         key: &MachineKey,
         result: Result<Vec<AgentRecord>, DirectoryError>,
@@ -141,20 +161,22 @@ impl AgentCatalog {
     ) {
         let mut state = self.lock();
         let entry = state.entries.entry(key.clone()).or_default();
-        match result {
-            Ok(agents) => {
-                entry.agents = agents;
-                entry.refreshed_at = Some(now);
-                entry.error = None;
-            }
-            Err(error) => {
-                tracing::warn!(machine = %key, error = %error, "agent refresh failed");
-                entry.error = Some(error.to_string());
-            }
-        }
+        entry.record(key, result, now);
         entry.in_flight = false;
-        entry.checked_at = Some(now);
         entry.done.send_modify(|count| *count += 1);
+    }
+
+    pub(crate) fn note_agents(
+        &self,
+        key: &MachineKey,
+        result: Result<Vec<AgentRecord>, DirectoryError>,
+        now: Timestamp,
+    ) {
+        let mut state = self.lock();
+        let entry = state.entries.entry(key.clone()).or_default();
+        if !entry.in_flight {
+            entry.record(key, result, now);
+        }
     }
 }
 

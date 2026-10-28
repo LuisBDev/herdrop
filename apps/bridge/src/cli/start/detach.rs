@@ -1,9 +1,9 @@
 use std::ffi::OsString;
 use std::io;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 
-pub(crate) fn spawn_serve(exe: &Path, args: &[OsString], cwd: &Path) -> io::Result<u32> {
+pub(crate) fn spawn_serve(exe: &Path, args: &[OsString], cwd: &Path) -> io::Result<Child> {
     let mut command = Command::new(exe);
     command
         .args(args)
@@ -12,8 +12,7 @@ pub(crate) fn spawn_serve(exe: &Path, args: &[OsString], cwd: &Path) -> io::Resu
         .stdout(Stdio::null())
         .stderr(Stdio::null());
     detach(&mut command);
-    let child = command.spawn()?;
-    Ok(child.id())
+    command.spawn()
 }
 
 #[cfg(unix)]

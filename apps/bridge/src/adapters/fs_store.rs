@@ -34,6 +34,20 @@ impl FsBundleStore {
             EffectiveFolder::Home => self.home.join(HERDROP_DIR),
         })
     }
+
+    pub async fn prune(
+        &self,
+        location: &BundleLocation,
+        now: Timestamp,
+        policy: &RetentionPolicy,
+    ) -> Result<usize, StoreError> {
+        let drop = self.root(location)?.join(DROP_DIR);
+        let keep = DropId::generate(now, &mut fastrand::Rng::with_seed(0));
+        match prune_dir(&drop, &keep, now, policy).await {
+            Err(StoreError::Io(error)) if error.kind() == ErrorKind::NotFound => Ok(0),
+            other => other,
+        }
+    }
 }
 
 impl BundleStore for FsBundleStore {
@@ -62,20 +76,6 @@ impl BundleStore for FsBundleStore {
             readme: dir.join(README).display().to_string(),
             dir: dir.display().to_string(),
         })
-    }
-
-    async fn prune(
-        &self,
-        location: &BundleLocation,
-        now: Timestamp,
-        policy: &RetentionPolicy,
-    ) -> Result<usize, StoreError> {
-        let drop = self.root(location)?.join(DROP_DIR);
-        let keep = DropId::generate(now, &mut fastrand::Rng::with_seed(0));
-        match prune_dir(&drop, &keep, now, policy).await {
-            Err(StoreError::Io(error)) if error.kind() == ErrorKind::NotFound => Ok(0),
-            other => other,
-        }
     }
 }
 

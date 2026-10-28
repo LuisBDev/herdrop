@@ -27,16 +27,4 @@ impl BundleStore for MachineBundleStore {
             Machine::Remote(_) => self.ssh.write(location, id, bundle, now, policy).await,
         }
     }
-
-    async fn prune(
-        &self,
-        location: &BundleLocation,
-        now: Timestamp,
-        policy: &RetentionPolicy,
-    ) -> Result<usize, StoreError> {
-        match location.machine {
-            Machine::Local => self.local.prune(location, now, policy).await,
-            Machine::Remote(_) => self.ssh.prune(location, now, policy).await,
-        }
-    }
 }

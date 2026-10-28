@@ -57,4 +57,10 @@ async fn serve_answers_health_and_logs_rejections_to_the_file() {
     assert!(logged, "{text}");
     assert_eq!(text.matches(&forbidden).count(), 1, "{text}");
     assert_eq!(text.matches("rejected").count(), 2, "{text}");
+
+    let port_zero = herdrop(tmp.path())
+        .args(["serve", "--port", "0", "--no-warm"])
+        .output()
+        .unwrap();
+    assert_eq!(port_zero.status.code(), Some(2));
 }

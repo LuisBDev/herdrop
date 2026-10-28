@@ -38,7 +38,9 @@ impl Outcome {
 
 impl<D: AgentDirectory, S: BundleStore, P: AgentPrompter> Bridge<D, S, P> {
     pub fn start(self: &Arc<Self>, record: DropRecord) -> DropId {
-        match self.drops.admit(record) {
+        let now = self.now();
+        let mut rng = fastrand::Rng::new();
+        match self.drops.admit(record, || DropId::generate(now, &mut rng)) {
             Admission::Created(id) => {
                 self.spawn_run(id.clone());
                 id
@@ -95,7 +97,7 @@ impl<D: AgentDirectory, S: BundleStore, P: AgentPrompter> Bridge<D, S, P> {
             .map(Clone::clone)
             .map_err(ToString::to_string);
         self.catalog
-            .finish(&record.machine.key(), result, self.now());
+            .note_agents(&record.machine.key(), result, self.now());
         let agents = match checked {
             Ok(agents) => agents,
             Err(message) => return Outcome::failed(DropStep::CheckAgent, message),

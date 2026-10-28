@@ -62,7 +62,8 @@ async fn start_detaches_and_closes_its_output_pipes() {
 #[tokio::test]
 async fn start_reports_the_log_path_when_serve_fails() {
     let tmp = tempfile::tempdir().unwrap();
-    let _pid_guard = PidGuard(tmp.path().join("state").join("herdrop.pid"));
+    let pid_file = tmp.path().join("state").join("herdrop.pid");
+    let _pid_guard = PidGuard(pid_file.clone());
     let occupied = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = occupied.local_addr().unwrap().port();
 
@@ -74,4 +75,5 @@ async fn start_reports_the_log_path_when_serve_fails() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert_eq!(output.status.code(), Some(1), "{stdout}");
     assert!(stdout.contains("herdrop.log"), "{stdout}");
+    assert!(!pid_file.exists());
 }

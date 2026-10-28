@@ -12,7 +12,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     Serve {
-        #[arg(long)]
+        #[arg(long, value_parser = port_parser())]
         port: Option<u16>,
         #[arg(long)]
         config: Option<PathBuf>,
@@ -22,7 +22,7 @@ pub enum Command {
         no_warm: bool,
     },
     Start {
-        #[arg(long)]
+        #[arg(long, value_parser = port_parser())]
         port: Option<u16>,
         #[arg(long)]
         config: Option<PathBuf>,
@@ -31,7 +31,7 @@ pub enum Command {
     },
     Stop,
     Status {
-        #[arg(long)]
+        #[arg(long, value_parser = port_parser())]
         port: Option<u16>,
         #[arg(long)]
         config: Option<PathBuf>,
@@ -40,6 +40,10 @@ pub enum Command {
         #[arg(long)]
         config: Option<PathBuf>,
     },
+}
+
+fn port_parser() -> clap::builder::RangedI64ValueParser<u16> {
+    clap::value_parser!(u16).range(1..)
 }
 
 pub mod config;
