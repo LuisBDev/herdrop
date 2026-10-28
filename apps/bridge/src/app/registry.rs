@@ -113,6 +113,13 @@ impl DropRegistry {
         self.lock().records.get(id).cloned()
     }
 
+    pub fn has_running(&self) -> bool {
+        self.lock()
+            .records
+            .values()
+            .any(|record| record.state == DropState::Running)
+    }
+
     pub fn update(&self, id: &DropId, change: impl FnOnce(&mut DropRecord)) {
         if let Some(record) = self.lock().records.get_mut(id) {
             change(record);
@@ -171,6 +178,32 @@ mod tests {
 
     fn unused() -> DropId {
         unreachable!("the id is free")
+    }
+
+    #[test]
+    fn has_running_follows_the_drop_states() {
+        let registry = DropRegistry::default();
+        assert!(!registry.has_running());
+
+        registry.admit(
+            record("20261027-000000-aaaa", "r-done", DropState::Delivered),
+            unused,
+        );
+        assert!(!registry.has_running());
+
+        let running: DropId = "20261027-000000-bbbb".parse().expect("valid id");
+        registry.admit(
+            record(running.as_str(), "r-running", DropState::Running),
+            unused,
+        );
+        assert!(registry.has_running());
+
+        registry.update(&running, |record| record.state = DropState::Failed);
+        assert!(!registry.has_running());
+        registry
+            .restart(&running)
+            .expect("failed drops are retryable");
+        assert!(registry.has_running());
     }
 
     #[test]

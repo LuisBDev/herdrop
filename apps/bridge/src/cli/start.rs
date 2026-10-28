@@ -1,5 +1,3 @@
-mod detach;
-
 use std::ffi::OsString;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -7,6 +5,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use crate::cli::config::{Config, ConfigError};
+use crate::cli::detach;
 use crate::cli::paths::{PidRecord, StatePaths};
 use crate::cli::probe;
 use crate::cli::stop::{self, StopError};
@@ -119,7 +118,9 @@ async fn start(
         .transpose()
         .map_err(StartError::ConfigPath)?;
     let args = serve_args(port, &log, config_path.as_deref(), no_warm);
-    let mut child = detach::spawn_serve(&exe, &args, &state.dir).map_err(StartError::Spawn)?;
+    let mut child = detach::command(&exe, &args, &state.dir)
+        .spawn()
+        .map_err(StartError::Spawn)?;
     let pid_file = state.pid_file();
     if !wait_for_health(port).await {
         if matches!(child.try_wait(), Ok(None)) {

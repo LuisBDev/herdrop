@@ -15,11 +15,15 @@ use crate::adapters::machine_store::MachineBundleStore;
 use crate::adapters::ssh_store::SshBundleStore;
 use crate::app::bridge::Bridge;
 use crate::cli::config::{Config, ConfigError};
-use crate::cli::paths::{PathsError, StatePaths, home_dir, packaged_extension_dir};
+use crate::cli::paths::{PathsError, StatePaths, home_dir, packaged_extension_dir, plugin_root};
 use crate::domain::retention::RetentionPolicy;
 use crate::http::router;
 use crate::http::security::SecurityConfig;
 use crate::unpacked::{self, Deployment};
+
+mod updater;
+
+use updater::Updater;
 
 const DEFAULT_FILTER: &str = "herdrop=info";
 const SSH_PROGRAM: &str = "ssh";
@@ -99,6 +103,19 @@ async fn serve(port: Option<u16>, config: Option<&Path>, no_warm: bool) -> Resul
     if !no_warm {
         let warming = Arc::clone(&bridge);
         tokio::spawn(async move { warming.warm().await });
+    }
+    if config.auto_update {
+        match (plugin_root(), updater::herdr_bin()) {
+            (Some(_), Some(herdr)) => {
+                let drops = Arc::clone(&bridge);
+                Updater {
+                    herdr,
+                    busy: move || drops.drops.has_running(),
+                }
+                .spawn();
+            }
+            _ => tracing::info!("auto-update off: not running as an installed herdr plugin"),
+        }
     }
     let state = StatePaths::from_env();
     if let Some(packaged) = packaged_extension_dir() {

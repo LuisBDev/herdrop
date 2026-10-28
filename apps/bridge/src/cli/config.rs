@@ -28,6 +28,7 @@ pub struct Config {
     pub port: u16,
     pub retention_days: u32,
     pub extension_id: String,
+    pub auto_update: bool,
 }
 
 #[derive(Deserialize)]
@@ -36,6 +37,7 @@ struct ConfigFile {
     port: Option<u16>,
     retention_days: Option<u32>,
     extension_id: Option<String>,
+    auto_update: Option<bool>,
 }
 
 fn is_valid_extension_id(id: &str) -> bool {
@@ -48,6 +50,7 @@ impl Default for Config {
             port: DEFAULT_PORT,
             retention_days: DEFAULT_RETENTION_DAYS,
             extension_id: crate::extension_id::bundled_extension_id(),
+            auto_update: true,
         }
     }
 }
@@ -82,6 +85,7 @@ impl Config {
             port: file.port.unwrap_or(defaults.port),
             retention_days: file.retention_days.unwrap_or(defaults.retention_days),
             extension_id: file.extension_id.unwrap_or(defaults.extension_id),
+            auto_update: file.auto_update.unwrap_or(defaults.auto_update),
         })
     }
 
@@ -103,6 +107,7 @@ mod tests {
         let defaults = Config::load(None, Some(dir.path())).unwrap();
         assert_eq!(defaults.port, 47821);
         assert_eq!(defaults.retention_days, 7);
+        assert!(defaults.auto_update);
         assert_eq!(
             defaults.extension_id,
             crate::extension_id::bundled_extension_id()
@@ -118,6 +123,13 @@ mod tests {
                 .unwrap()
                 .port,
             50001
+        );
+
+        fs::write(&explicit, "auto_update = false").unwrap();
+        assert!(
+            !Config::load(Some(&explicit), Some(dir.path()))
+                .unwrap()
+                .auto_update
         );
 
         fs::write(&explicit, "colour = \"red\"").unwrap();

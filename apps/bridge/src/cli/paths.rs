@@ -16,10 +16,14 @@ pub fn home_dir() -> Result<PathBuf, PathsError> {
     std::env::home_dir().ok_or(PathsError::NoHome)
 }
 
-pub fn packaged_extension_dir() -> Option<PathBuf> {
+pub fn plugin_root() -> Option<PathBuf> {
     std::env::var_os(PLUGIN_ROOT_ENV)
         .filter(|root| !root.is_empty())
-        .map(|root| PathBuf::from(root).join("extension"))
+        .map(PathBuf::from)
+}
+
+pub fn packaged_extension_dir() -> Option<PathBuf> {
+    plugin_root().map(|root| root.join("extension"))
 }
 
 #[derive(Debug, Clone)]

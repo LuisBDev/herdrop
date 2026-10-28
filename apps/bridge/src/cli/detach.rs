@@ -1,10 +1,11 @@
 use std::ffi::OsString;
+#[cfg(windows)]
 use std::io;
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 
-pub(crate) fn spawn_serve(exe: &Path, args: &[OsString], cwd: &Path) -> io::Result<Child> {
-    let mut command = Command::new(exe);
+pub(crate) fn command(program: &Path, args: &[OsString], cwd: &Path) -> Command {
+    let mut command = Command::new(program);
     command
         .args(args)
         .current_dir(cwd)
@@ -12,7 +13,7 @@ pub(crate) fn spawn_serve(exe: &Path, args: &[OsString], cwd: &Path) -> io::Resu
         .stdout(Stdio::null())
         .stderr(Stdio::null());
     detach(&mut command);
-    command.spawn()
+    command
 }
 
 #[cfg(unix)]

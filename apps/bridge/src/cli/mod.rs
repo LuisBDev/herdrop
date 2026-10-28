@@ -48,6 +48,7 @@ fn port_parser() -> clap::builder::RangedI64ValueParser<u16> {
 }
 
 pub mod config;
+mod detach;
 pub mod extension_path;
 pub mod paths;
 pub mod probe;
