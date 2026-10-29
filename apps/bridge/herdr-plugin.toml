@@ -1,6 +1,6 @@
 id = "herdrop"
 name = "Herdrop"
-version = "0.1.0"
+version = "0.2.0"
 min_herdr_version = "0.9.5"
 description = "Deliver browser annotations to agents in Herdr panes."
 platforms = ["linux", "windows"]
